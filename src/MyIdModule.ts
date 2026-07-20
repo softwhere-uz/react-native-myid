@@ -1,4 +1,8 @@
-import { requireNativeModule } from 'expo';
+// Imported from `expo-modules-core` (not `expo`) so the library's dev
+// dependencies don't pull Metro into node_modules — which conflicts with the
+// sibling example app's Metro. `requireNativeModule` is identical either way,
+// and expo-modules-core is always present via the consumer's `expo`.
+import { requireNativeModule } from 'expo-modules-core';
 
 import type { MyIdConfig, MyIdEntryType, MyIdEnvironment } from './MyId.types';
 

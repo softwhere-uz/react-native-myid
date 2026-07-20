@@ -6,7 +6,7 @@
   "types": "build/index.d.ts",
   "scripts": {
     "build": "node internal/module_scripts/build.js",
-    "build:plugin": "node internal/module_scripts/build.js plugin",
+    "build:plugin": "tsc --build plugin --force",
     "clean": "node internal/module_scripts/clean.js",
     "lint": "eslint src plugin/src",
     "typecheck": "tsc --noEmit",
@@ -45,8 +45,10 @@
     "build",
     "plugin/build",
     "app.plugin.js",
-    "ios",
-    "android",
+    "ios/MyId.podspec",
+    "ios/MyIdModule.swift",
+    "android/build.gradle",
+    "android/src",
     "expo-module.config.json",
     "LICENSE",
     "NOTICE",
@@ -66,10 +68,9 @@
     "@types/react": "~19.1.1",
     "eslint": "~9.39.4",
     "eslint-config-universe": "^15.0.3",
-    "expo": "^57.0.7",
+    "expo-modules-core": "~57.0.6",
     "jest": "^29.7.0",
     "prettier": "^3.0.0",
-    "react-native": "0.82.1",
     "typescript": "^5.9.2"
   },
   "jest": {
@@ -77,7 +78,20 @@
     "roots": [
       "<rootDir>/src",
       "<rootDir>/plugin/src"
-    ]
+    ],
+    "transform": {
+      "^.+\\.[jt]sx?$": [
+        "babel-jest",
+        {
+          "configFile": false,
+          "babelrc": false,
+          "presets": [
+            ["@babel/preset-env", { "targets": { "node": "current" } }],
+            "@babel/preset-typescript"
+          ]
+        }
+      ]
+    }
   },
   "peerDependencies": {
     "expo": "*",
