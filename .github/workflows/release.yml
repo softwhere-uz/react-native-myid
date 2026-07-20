@@ -1,0 +1,49 @@
+name: Release (npm)
+
+# Publish to npm when a version tag is pushed:
+#   npm version patch   # bumps package.json + creates vX.Y.Z + commits
+#   git push --follow-tags
+# Publishing is tokenless via npm Trusted Publishing (OIDC) and includes
+# provenance. Configure the trusted publisher on npmjs.com for this package:
+#   publisher = GitHub Actions, org = softwhere-uz, repo = react-native-myid,
+#   workflow = release.yml.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  id-token: write # required for OIDC trusted publishing + provenance
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+      - name: Ensure a Trusted-Publishing-capable npm
+        run: npm install -g npm@latest
+      - name: Tag must match package.json version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME ($TAG) does not match package.json version ($PKG)"
+            exit 1
+          fi
+      - run: npm ci
+      - name: Verify before publishing
+        run: |
+          npm run lint
+          npm run typecheck
+          npm run test:ci
+          npm run build
+          npm run build:plugin
+      - name: Publish (tokenless via OIDC, with provenance)
+        run: npm publish
