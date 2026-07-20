@@ -6,8 +6,9 @@
   "types": "build/index.d.ts",
   "scripts": {
     "build": "node internal/module_scripts/build.js",
+    "build:plugin": "node internal/module_scripts/build.js plugin",
     "clean": "node internal/module_scripts/clean.js",
-    "lint": "eslint src/",
+    "lint": "eslint src plugin/src",
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:ci": "jest --ci --runInBand",
@@ -60,6 +61,7 @@
     "@babel/core": "^7.26.0",
     "@babel/preset-env": "^7.26.0",
     "@babel/preset-typescript": "^7.26.0",
+    "@expo/config-plugins": "~57.0.5",
     "@types/jest": "^29.2.1",
     "@types/react": "~19.1.1",
     "eslint": "~9.39.4",
@@ -73,7 +75,8 @@
   "jest": {
     "testEnvironment": "node",
     "roots": [
-      "<rootDir>/src"
+      "<rootDir>/src",
+      "<rootDir>/plugin/src"
     ]
   },
   "peerDependencies": {
