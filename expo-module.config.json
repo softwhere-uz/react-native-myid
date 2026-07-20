@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["MyIdModule"]
+  },
+  "android": {
+    "modules": ["uz.softwhere.myid.MyIdModule"]
+  }
+}

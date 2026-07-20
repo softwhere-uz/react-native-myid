@@ -1,0 +1,83 @@
+{
+  "name": "@softwhere-uz/react-native-myid",
+  "version": "0.1.0",
+  "description": "MyID biometric eKYC (face liveness) for React Native & Expo — New Architecture, config plugin, maintained.",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "scripts": {
+    "build": "node internal/module_scripts/build.js",
+    "clean": "node internal/module_scripts/clean.js",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "test": "node internal/module_scripts/test.js",
+    "prepare": "node internal/module_scripts/prepare.js",
+    "open:ios": "node internal/module_scripts/open-ios.js",
+    "open:android": "node internal/module_scripts/open-android.js"
+  },
+  "keywords": [
+    "react-native",
+    "expo",
+    "expo-config-plugin",
+    "myid",
+    "kyc",
+    "ekyc",
+    "biometric",
+    "liveness",
+    "face-recognition",
+    "identity-verification",
+    "uzbekistan",
+    "ios",
+    "android"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/softwhere-uz/react-native-myid.git"
+  },
+  "bugs": {
+    "url": "https://github.com/softwhere-uz/react-native-myid/issues"
+  },
+  "author": "Kamronbek Juraev <kamuranbek1998@gmail.com> (https://github.com/KAMRONBEK)",
+  "license": "MIT",
+  "homepage": "https://github.com/softwhere-uz/react-native-myid#readme",
+  "files": [
+    "build",
+    "plugin/build",
+    "app.plugin.js",
+    "ios",
+    "android",
+    "expo-module.config.json",
+    "LICENSE",
+    "NOTICE",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@types/jest": "^29.2.1",
+    "@types/react": "~19.1.1",
+    "babel-preset-expo": "~55.0.8",
+    "eslint": "~9.39.4",
+    "eslint-config-universe": "^15.0.3",
+    "expo": "^57.0.7",
+    "jest": "^29.7.0",
+    "jest-expo": "~55.0.9",
+    "prettier": "^3.0.0",
+    "react-native": "0.82.1",
+    "typescript": "^5.9.2"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "roots": [
+      "<rootDir>/src"
+    ]
+  },
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  }
+}

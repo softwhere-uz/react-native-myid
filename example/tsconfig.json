@@ -1,0 +1,10 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "react-native-myid": ["../src/index"],
+      "react-native-myid/*": ["../src/*"]
+    }
+  }
+}
