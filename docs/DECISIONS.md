@@ -103,7 +103,7 @@ interface MyIdConfig {           // required
   appearance?: MyIdAppearance; huaweiAppId?: string;  // huaweiAppId: Android/HMS only
 }
 interface MyIdResult { code: string; base64Image?: string; comparison?: number; }
-type MyIdErrorKind = 'cancelled' | 'permission' | 'network' | 'sdk' | 'no_activity' | 'unknown';
+type MyIdErrorKind = 'cancelled' | 'permission' | 'network' | 'sdk' | 'no_activity' | 'config' | 'unknown';
 interface MyIdError extends Error { kind: MyIdErrorKind; code?: number; nativeMessage?: string; }
 ```
 `code` is an identification handle — **verify it against MyID's backend from your server**;

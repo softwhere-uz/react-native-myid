@@ -1,7 +1,48 @@
-import { NativeModule, requireNativeModule } from 'expo';
+import { requireNativeModule } from 'expo';
 
-declare class MyIdModule extends NativeModule<{}> {
-  setValueAsync(value: string): Promise<void>;
+import type { MyIdConfig, MyIdEntryType, MyIdEnvironment } from './MyId.types';
+
+/**
+ * Config after {@link identify} validation + defaults. This is exactly what we
+ * hand to the native side, so `environment` and `entryType` are always present.
+ */
+export interface MyIdResolvedConfig extends MyIdConfig {
+  environment: MyIdEnvironment;
+  entryType: MyIdEntryType;
 }
 
-export default requireNativeModule<MyIdModule>('MyId');
+/**
+ * Internal outcome the native `identify()` ALWAYS resolves with — it never
+ * rejects for *expected* cases. Resolving (instead of rejecting) lets
+ * structured data (numeric code, message, discriminant) survive the bridge
+ * intact; the JS wrapper turns non-success outcomes into a rejected
+ * {@link MyIdError}.
+ */
+export type MyIdNativeOutcome =
+  | { status: 'success'; code: string; base64Image?: string | null; comparison?: number | null }
+  | { status: 'cancelled' }
+  | {
+      status: 'error';
+      kind: 'permission' | 'network' | 'sdk' | 'no_activity' | 'unknown';
+      code?: number | null;
+      message?: string | null;
+    };
+
+export interface MyIdNativeModule {
+  identify(config: MyIdResolvedConfig): Promise<MyIdNativeOutcome>;
+}
+
+let cached: MyIdNativeModule | null = null;
+
+/**
+ * Lazily resolve the native module. Kept lazy (not a top-level
+ * `requireNativeModule`) so importing this package never throws in a JS-only
+ * environment (unit tests, mock mode, SSR) — it only binds when a real call is
+ * made on a device/simulator build.
+ */
+export function getNativeMyIdModule(): MyIdNativeModule {
+  if (cached == null) {
+    cached = requireNativeModule<MyIdNativeModule>('MyId');
+  }
+  return cached;
+}
