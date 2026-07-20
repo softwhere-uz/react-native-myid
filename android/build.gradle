@@ -16,3 +16,13 @@ android {
     abortOnError false
   }
 }
+
+dependencies {
+  // MyID SDK — resolved from the public MyID Maven repository, which the Expo
+  // config plugin adds to the consuming app (`allprojects`). This package NEVER
+  // vendors/bundles the binary. Debug/release split per MyID's guidance: the
+  // `-debug` artifact permits debug-signed builds; the release artifact ships
+  // in production. Pinned to a stable version (NOT the 3.1.10-beta metadata tag).
+  debugImplementation "uz.myid.sdk.capture:myid-capture-sdk-debug:3.1.9"
+  releaseImplementation "uz.myid.sdk.capture:myid-capture-sdk:3.1.9"
+}
