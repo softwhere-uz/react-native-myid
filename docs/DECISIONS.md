@@ -134,3 +134,36 @@ Camera usage string (`NSCameraUsageDescription`) is required; **no microphone** 
   successful `identify()` with a real face + `code`, and backend verification of that `code`.
 - Device for the happy-path test: a **physical iPhone** (confirmed available). MyID `sessionId`
   minting is the outstanding gate for the live success test.
+
+## 8. Monorepo / example gotchas (for maintainers)
+
+The example lives inside the library directory, so Node/Metro resolution can reach the
+library's `node_modules`. Getting a clean Metro bundle required, in order of how much each bit
+mattered:
+
+1. **The example must have NO `babel.config.js`.** Expo SDK 57 provides babel config internally.
+   The scaffold shipped a `babel.config.js` referencing `babel-preset-expo` — which is not a
+   dependency in SDK 57 — so Metro's transformer failed to initialize (`Cannot read properties
+   of undefined (reading 'transformFile')`). Deleting it fixed the transformer. **This was the
+   real cause**, not the metro/node_modules theories it superficially resembled.
+2. **The library dev-depends on `expo-modules-core`, not `expo`**, and sets `.npmrc`
+   `legacy-peer-deps=true`. Otherwise `expo` (dep or auto-installed peer) drags Metro +
+   `@expo/metro-config` into the library's `node_modules`; the example then resolves a *second*
+   `@expo/metro-config` instance through the parent dir, which cross-wires with the config it
+   built. Keeping Metro out of the library's tree avoids it. `requireNativeModule` is identical
+   in `expo-modules-core`.
+3. **`example/metro.config.js` redirects shared deps** (`react`, `react-native`,
+   `expo-modules-core`) to the example's own copies, because the library's built code imports
+   `expo-modules-core` and would otherwise resolve the library's copy (which has no
+   `react-native`). It also aliases the package name to `../build` and watches the library root.
+4. **`plugin/build` uses `tsc --build --force`** — a stale `.tsbuildinfo` will otherwise skip
+   emitting after `build/` was cleaned, leaving `app.plugin.js` unable to `require('./plugin/build')`.
+5. **Never pack `android/build/`** — the example's `assembleDebug` compiles the module in-place
+   and leaves a gradle `build/` in the module dir. The `files` allowlist lists precise source
+   paths (`android/build.gradle`, `android/src`), not the whole `android/` directory.
+
+Verified working: `expo prebuild` applies all 8 plugin mods; Metro bundles the example on iOS
+and Android (dev server, HTTP 200); the MyId pod compiles against MyIdSDK 3.1.3 (iOS
+`** BUILD SUCCEEDED **`); `./gradlew :app:assembleDebug` compiles against myid-capture-sdk 3.1.9
+(Android `BUILD SUCCESSFUL`). Note: `expo export` (static export) is flaky in this toolchain,
+but the dev-server bundle — what `expo run`/`start` use — works; CI uses the dev-server bundle.
