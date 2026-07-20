@@ -1,0 +1,28 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'uz.softwhere.myid'
+version = '0.1.0'
+
+android {
+  namespace "uz.softwhere.myid"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+  }
+  lintOptions {
+    abortOnError false
+  }
+}
+
+dependencies {
+  // MyID SDK — resolved from the public MyID Maven repository, which the Expo
+  // config plugin adds to the consuming app (`allprojects`). This package NEVER
+  // vendors/bundles the binary. Debug/release split per MyID's guidance: the
+  // `-debug` artifact permits debug-signed builds; the release artifact ships
+  // in production. Pinned to a stable version (NOT the 3.1.10-beta metadata tag).
+  debugImplementation "uz.myid.sdk.capture:myid-capture-sdk-debug:3.1.9"
+  releaseImplementation "uz.myid.sdk.capture:myid-capture-sdk:3.1.9"
+}

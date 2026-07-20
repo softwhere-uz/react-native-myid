@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint · Typecheck · Build · Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm run build:plugin
+      - run: npm run test:ci
+
+  plugin-prebuild:
+    name: Config plugin · prebuild assertions + JS bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build && npm run build:plugin
+      - name: Install example dependencies
+        working-directory: example
+        run: npm ci
+      - name: expo prebuild (Continuous Native Generation, no native install)
+        working-directory: example
+        run: npx expo prebuild --no-install --clean
+      - name: Assert config-plugin mods were applied
+        run: node scripts/assert-prebuild.mjs
+      - name: Metro bundle smoke test (iOS + Android)
+        working-directory: example
+        run: |
+          npx expo start --port 8081 > /tmp/metro.log 2>&1 &
+          server=$!
+          trap 'kill $server 2>/dev/null || true' EXIT
+          fail=0
+          for platform in ios android; do
+            code=$(curl -s --retry 60 --retry-delay 2 --retry-connrefused \
+              -o "/tmp/$platform.bundle.js" -w '%{http_code}' \
+              "http://localhost:8081/index.bundle?platform=$platform&dev=true&minify=false")
+            if [ "$code" != "200" ]; then
+              echo "::error::$platform bundle returned HTTP $code"; head -c 500 "/tmp/$platform.bundle.js"; fail=1; continue
+            fi
+            if ! grep -q "Verify with MyID" "/tmp/$platform.bundle.js"; then
+              echo "::error::$platform bundle is missing the example code"; fail=1; continue
+            fi
+            echo "$platform bundle OK ($(wc -c < "/tmp/$platform.bundle.js") bytes)"
+          done
+          exit $fail
+
+  ios:
+    name: iOS · compile against MyIdSDK (simulator)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build && npm run build:plugin
+      - name: Install example dependencies
+        working-directory: example
+        run: npm ci
+      - name: expo prebuild iOS + pod install (pulls MyIdSDK from CocoaPods trunk)
+        working-directory: example
+        run: |
+          npx expo prebuild -p ios --no-install
+          cd ios && pod install
+      - name: Build the MyId pod (Swift compiles against MyIdSDK, no signing)
+        working-directory: example/ios
+        run: |
+          xcodebuild -project Pods/Pods.xcodeproj -target MyId \
+            -sdk iphonesimulator -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO build
+
+  android:
+    name: Android · assembleDebug against MyID SDK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - run: npm ci
+      - run: npm run build && npm run build:plugin
+      - name: Install example dependencies
+        working-directory: example
+        run: npm ci
+      - name: expo prebuild Android (config plugin adds the MyID Maven repo)
+        working-directory: example
+        run: npx expo prebuild -p android --no-install
+      - name: Gradle assembleDebug (resolves + compiles against myid-capture-sdk)
+        working-directory: example/android
+        run: ./gradlew :app:assembleDebug --no-daemon

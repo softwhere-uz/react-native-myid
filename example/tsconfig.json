@@ -1,0 +1,10 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@softwhere-uz/react-native-myid": ["../src/index"],
+      "@softwhere-uz/react-native-myid/*": ["../src/*"]
+    }
+  }
+}
