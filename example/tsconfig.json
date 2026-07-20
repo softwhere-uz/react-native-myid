@@ -3,8 +3,8 @@
   "compilerOptions": {
     "strict": true,
     "paths": {
-      "react-native-myid": ["../src/index"],
-      "react-native-myid/*": ["../src/*"]
+      "@softwhere-uz/react-native-myid": ["../src/index"],
+      "@softwhere-uz/react-native-myid/*": ["../src/*"]
     }
   }
 }

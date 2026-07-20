@@ -1,35 +1,28 @@
-// Learn more https://docs.expo.io/guides/customizing-metro
+// Learn more https://docs.expo.dev/guides/monorepos/
 const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
 
-const config = getDefaultConfig(__dirname);
+const projectRoot = __dirname;
+const workspaceRoot = path.resolve(projectRoot, '..');
+const config = getDefaultConfig(projectRoot);
 
-// npm v7+ will install ../node_modules/react and ../node_modules/react-native because of peerDependencies.
-// To prevent the incompatible react-native between ./node_modules/react-native and ../node_modules/react-native,
-// excludes the one from the parent folder when bundling.
-config.resolver.blockList = [
-  ...Array.from(config.resolver.blockList ?? []),
-  // On windows the path will resolve with `\`. We need to escape it with `\\` for the RegExp.
-  new RegExp(path.resolve('..', 'node_modules', 'react').replace(/\\/g, '\\\\')),
-  new RegExp(path.resolve('..', 'node_modules', 'react-native').replace(/\\/g, '\\\\')),
-];
+// Resolve a package's directory from the example's own node_modules.
+const fromProject = (name) =>
+  path.dirname(require.resolve(`${name}/package.json`, { paths: [projectRoot] }));
 
-config.resolver.nodeModulesPaths = [
-  path.resolve(__dirname, './node_modules'),
-  path.resolve(__dirname, '../node_modules'),
-];
+// Watch the library so Metro can read its built output (../build).
+config.watchFolders = [workspaceRoot];
 
 config.resolver.extraNodeModules = {
-  'react-native-myid': '..',
+  // Resolve the package by its published name to the library root
+  // (package.json `main` -> ../build/index.js).
+  '@softwhere-uz/react-native-myid': workspaceRoot,
+  // The library keeps no react-native/expo in its node_modules (it dev-depends
+  // on expo-modules-core only), so its built code must resolve these shared deps
+  // to the EXAMPLE's copies — otherwise there would be two React Natives.
+  'expo-modules-core': fromProject('expo-modules-core'),
+  react: fromProject('react'),
+  'react-native': fromProject('react-native'),
 };
-
-config.watchFolders = [path.resolve(__dirname, '..')];
-
-config.transformer.getTransformOptions = async () => ({
-  transform: {
-    experimentalImportSupport: false,
-    inlineRequires: true,
-  },
-});
 
 module.exports = config;
