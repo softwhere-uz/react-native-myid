@@ -41,6 +41,9 @@
   "author": "Kamronbek Juraev <kamuranbek1998@gmail.com> (https://github.com/KAMRONBEK)",
   "license": "MIT",
   "homepage": "https://github.com/softwhere-uz/react-native-myid#readme",
+  "publishConfig": {
+    "access": "public"
+  },
   "files": [
     "build",
     "plugin/build",
