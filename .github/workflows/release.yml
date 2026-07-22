@@ -25,10 +25,19 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           registry-url: 'https://registry.npmjs.org'
-      - name: Ensure a Trusted-Publishing-capable npm
-        run: npm install -g npm@latest
+      - name: Ensure a Trusted-Publishing-capable npm (>= 11.5.1)
+        # Node 24 bundles a TP-capable npm; only upgrade if it is somehow older.
+        # Never `npm install -g npm@latest` blindly — a future npm major can
+        # drop support for the pinned Node and break the release (it did: npm 12
+        # requires Node >= 22.22, which killed this step on Node 20).
+        run: |
+          need="11.5.1"; have="$(npm --version)"
+          if [ "$(printf '%s\n' "$need" "$have" | sort -V | head -1)" != "$need" ]; then
+            npm install -g "npm@>=11.5.1 <12"
+          fi
+          npm --version
       - name: Tag must match package.json version
         run: |
           TAG="${GITHUB_REF_NAME#v}"
