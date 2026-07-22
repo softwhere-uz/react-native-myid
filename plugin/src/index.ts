@@ -10,7 +10,11 @@ import {
 } from '@expo/config-plugins';
 
 const PLUGIN_NAME = '@softwhere-uz/react-native-myid';
-const PLUGIN_VERSION = '0.1.2';
+// Resolved from package.json so version bumps never touch plugin source
+// (keeps release PRs out of the CI native-build path filter). Resolves from
+// both plugin/src (tests) and plugin/build (runtime) — ../../ is the package
+// root either way.
+const PLUGIN_VERSION: string = require('../../package.json').version;
 
 const DEFAULT_MAVEN_URL = 'https://artifactory.myid.uz/artifactory/myid';
 const DEFAULT_CAMERA_PERMISSION =
