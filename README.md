@@ -31,6 +31,7 @@
 - [Config plugin reference](#config-plugin-reference)
 - [Troubleshooting](#troubleshooting)
 - [Verified on real hardware](#verified-on-real-hardware)
+- [Guides & articles](#guides--articles)
 - [Comparison with other wrappers](#comparison-with-other-wrappers)
 - [Security checklist](#security-checklist)
 - [Licensing](#licensing)
@@ -368,6 +369,10 @@ This is not a types-only wrapper. On **2026-07-22** the library was E2E-tested o
 - **Bare React Native 0.86**: a fresh RN-CLI app, installed **from the packed npm tarball**, following the bare instructions above.
 
 Verified in each: native module registration, the full mock API, config validation, typed-error rendering, and a **real `MyIdClient.start` invocation** whose round trip reached the MyID SANDBOX backend and returned a graceful typed error (`"Session is expired"` — the correct response to an unminted session). The only path that requires a live MyID contract — a successful face capture — is exactly the path a contract holder gets by dropping a real `sessionId` into the [Quickstart](#quickstart).
+
+## Guides & articles
+
+- [MyID in React Native and Expo: the complete integration guide (2026)](https://medium.com/@kamuranbek1998/myid-in-react-native-and-expo-the-complete-integration-guide-2026-5efabc862cfb) — session flow, both install paths, error handling, and field notes, on Medium.
 
 ## Comparison with other wrappers
 
