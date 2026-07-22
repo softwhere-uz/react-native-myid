@@ -1,6 +1,6 @@
 # @softwhere-uz/react-native-myid
 
-**English** · [Русский](README.ru.md) · [O'zbekcha](README.uz.md)
+**English** · [Русский](docs/i18n/README.ru.md) · [O'zbekcha](docs/i18n/README.uz.md)
 
 > **MyID** biometric identification (face liveness / eKYC) for **React Native** and **Expo** — one typed API, a first-class Expo **config plugin**, New Architecture support, and current MyID 3.1.x SDKs. Verified end-to-end on real hardware.
 

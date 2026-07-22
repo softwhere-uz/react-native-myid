@@ -5,6 +5,20 @@ All notable changes to this project are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-07-22
+
+### Fixed
+
+- **npm was displaying the wrong README.** Root-level `README*` files are always
+  packed, and the registry picked the near-empty `README.uz.md` translation
+  scaffold as the package readme. The RU/UZ scaffolds moved to `docs/i18n/`, so
+  npmjs.com now renders the full English README.
+
+### Changed
+
+- Expanded npm `keywords` (face-liveness, liveness-detection, myid-sdk,
+  identification, verification, uzinfocom, expo-module) for search relevance.
+
 ## [0.1.1] - 2026-07-22
 
 Docs and CI release — no runtime or API changes.
@@ -53,6 +67,7 @@ Docs and CI release — no runtime or API changes.
 - CI (GitHub Actions): lint, typecheck, build, tests, config-plugin prebuild
   assertions, and iOS + Android build gates.
 
-[Unreleased]: https://github.com/softwhere-uz/react-native-myid/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/softwhere-uz/react-native-myid/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/softwhere-uz/react-native-myid/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/softwhere-uz/react-native-myid/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/softwhere-uz/react-native-myid/releases/tag/v0.1.0

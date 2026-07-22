@@ -1,9 +1,9 @@
-[English](README.md) · [Русский](README.ru.md) · **O'zbekcha**
+[English](../../README.md) · [Русский](README.ru.md) · **O'zbekcha**
 
 # @softwhere-uz/react-native-myid
 
-> ⏳ **Tarjima jarayonda.** Bo'lim tarjima qilinmaguncha, [inglizcha versiya](README.md) asosiy manba hisoblanadi.
-> _(Translation in progress — the [English README](README.md) is the source of truth until each section below is filled in by a native speaker.)_
+> ⏳ **Tarjima jarayonda.** Bo'lim tarjima qilinmaguncha, [inglizcha versiya](../../README.md) asosiy manba hisoblanadi.
+> _(Translation in progress — the [English README](../../README.md) is the source of truth until each section below is filled in by a native speaker.)_
 
 <!--
   Muallif (ona tilida so'zlashuvchi): quyidagi bo'limlarni README.md ga qarab bo'lma-bo'lim tarjima qiling.

@@ -10,7 +10,7 @@ import {
 } from '@expo/config-plugins';
 
 const PLUGIN_NAME = '@softwhere-uz/react-native-myid';
-const PLUGIN_VERSION = '0.1.1';
+const PLUGIN_VERSION = '0.1.2';
 
 const DEFAULT_MAVEN_URL = 'https://artifactory.myid.uz/artifactory/myid';
 const DEFAULT_CAMERA_PERMISSION =
