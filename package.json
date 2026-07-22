@@ -1,6 +1,6 @@
 {
   "name": "@softwhere-uz/react-native-myid",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MyID biometric eKYC (face liveness) for React Native & Expo — New Architecture, config plugin, maintained.",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -89,7 +89,14 @@
           "configFile": false,
           "babelrc": false,
           "presets": [
-            ["@babel/preset-env", { "targets": { "node": "current" } }],
+            [
+              "@babel/preset-env",
+              {
+                "targets": {
+                  "node": "current"
+                }
+              }
+            ],
             "@babel/preset-typescript"
           ]
         }

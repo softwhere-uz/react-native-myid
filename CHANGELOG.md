@@ -5,6 +5,34 @@ All notable changes to this project are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-07-22
+
+Docs and CI release — no runtime or API changes.
+
+### Added
+
+- Presentation-grade README: end-to-end MyID session-flow guide (official
+  endpoints and TTLs, sequence diagram, backend session-minting example), full
+  typed API reference, SDK error-code mapping with real device-captured
+  messages, verified bare-React-Native install steps (incl. the Xcode 26
+  `internal import Expo` note), troubleshooting table, security checklist, and
+  a comparison with the other React Native MyID wrappers — every claim
+  live-verified 2026-07-22.
+- On-device E2E verification (2026-07-22, physical iPhone): Expo dev build and
+  a bare RN 0.86 app installed from the packed tarball — native module
+  registration, mock API, config validation, and a real `MyIdClient.start`
+  round trip to the MyID SANDBOX backend, all passing.
+
+### Changed
+
+- CI: docs-only changes now skip the native iOS/Android builds and prebuild
+  assertions (paths-filter gate); the fast lint/typecheck/build/test job still
+  runs on every PR.
+- Releases publish to npm via GitHub Actions **Trusted Publishing** (OIDC,
+  tokenless) with provenance attestation, triggered by `v*` tags.
+
+## [0.1.0] - 2026-07-20
+
 ### Added
 
 - Initial library: `identify(config): Promise<MyIdResult>` wrapping the MyID
@@ -25,4 +53,6 @@ All notable changes to this project are documented here. This project adheres to
 - CI (GitHub Actions): lint, typecheck, build, tests, config-plugin prebuild
   assertions, and iOS + Android build gates.
 
-[Unreleased]: https://github.com/softwhere-uz/react-native-myid/commits/main
+[Unreleased]: https://github.com/softwhere-uz/react-native-myid/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/softwhere-uz/react-native-myid/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/softwhere-uz/react-native-myid/releases/tag/v0.1.0
