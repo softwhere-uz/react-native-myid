@@ -10,17 +10,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Docs-only changes (README*, docs/, CHANGELOG, …) skip the native builds and
-  # prebuild assertions below. GitHub counts skipped jobs as satisfied for
-  # required status checks, so branch protection keeps working. `checks` always
-  # runs so every PR reports at least one real green status.
+  # Docs-only changes (README*, docs/, CHANGELOG, …) and version-only release
+  # bumps skip the native builds and prebuild assertions below. GitHub counts
+  # skipped jobs as satisfied for required status checks, so branch protection
+  # keeps working. `checks` always runs so every PR reports at least one real
+  # green status.
   changes:
     name: Detect changed areas
     runs-on: ubuntu-latest
     outputs:
-      code: ${{ steps.filter.outputs.code }}
+      code: ${{ steps.filter.outputs.code == 'true' || steps.manifest.outputs.code == 'true' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: dorny/paths-filter@v3
         id: filter
         with:
@@ -35,11 +38,40 @@ jobs:
               - 'internal/**'
               - 'app.plugin.js'
               - 'expo-module.config.json'
-              - 'package.json'
-              - 'package-lock.json'
               - 'tsconfig.json'
               - 'eslint.config.cjs'
               - '.github/workflows/**'
+            manifest:
+              - 'package.json'
+              - 'package-lock.json'
+      # package.json/lockfile changes count as code UNLESS the only difference
+      # is the version field (a release bump) — dependency changes still build.
+      - name: Classify manifest changes (version-only bump vs real change)
+        id: manifest
+        if: steps.filter.outputs.manifest == 'true'
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="origin/${{ github.base_ref }}"
+            git fetch --quiet origin "${{ github.base_ref }}"
+          else
+            base="${{ github.event.before }}"
+          fi
+          if ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "code=true" >> "$GITHUB_OUTPUT"; exit 0   # unknown base: build
+          fi
+          verdict=$(node -e '
+            const { execSync } = require("child_process");
+            const base = process.argv[1];
+            const at = (ref, f) => { try { return JSON.parse(execSync(`git show ${ref}:${f}`, { encoding: "utf8" })); } catch { return null; } };
+            const stripPkg = (p) => { if (!p) return p; const c = structuredClone(p); delete c.version; return c; };
+            const stripLock = (l) => { if (!l) return l; const c = structuredClone(l); delete c.version; if (c.packages && c.packages[""]) delete c.packages[""].version; return c; };
+            const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+            const pkgSame = eq(stripPkg(at(base, "package.json")), stripPkg(at("HEAD", "package.json")));
+            const lockSame = eq(stripLock(at(base, "package-lock.json")), stripLock(at("HEAD", "package-lock.json")));
+            console.log(pkgSame && lockSame ? "version-only" : "code");
+          ' "$base")
+          echo "manifest classification: $verdict"
+          [ "$verdict" = "version-only" ] && echo "code=false" >> "$GITHUB_OUTPUT" || echo "code=true" >> "$GITHUB_OUTPUT"
 
   checks:
     name: Lint · Typecheck · Build · Test
