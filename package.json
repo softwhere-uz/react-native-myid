@@ -1,6 +1,6 @@
 {
   "name": "@softwhere-uz/react-native-myid",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "MyID biometric eKYC (face liveness) for React Native & Expo — New Architecture, config plugin, maintained.",
   "main": "build/index.js",
   "types": "build/index.d.ts",
