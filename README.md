@@ -91,7 +91,7 @@ Full platform reference: [MyID docs — Mobile SDK (new flow)](https://docs.myid
 | A per-verification `sessionId` | **Your backend** | A UUID4 minted from `POST /api/v2/sdk/sessions`. Single-use, 10-minute lifetime. |
 | A physical device | — | Liveness needs a real camera; simulators/emulators cannot complete the flow. |
 
-**Platform floor:** iOS 13.0+ · Android — the MyID SDK's own floor is minSdk 21; your React Native/Expo project's minimum governs in practice · React Native 0.74+ (New Architecture and legacy) · works in Expo (dev builds / EAS) and bare React Native. Pinned SDKs: iOS CocoaPods [`MyIdSDK ~> 3.1.3`](https://cocoapods.org/pods/MyIdSDK), Android `uz.myid.sdk.capture:myid-capture-sdk:3.1.9` from the official `artifactory.myid.uz` repository (release/debug variants split correctly; never resolved with `+`, so a beta can never leak into your build).
+**Platform floor:** iOS 15.1+ (this package's pod floor; the MyID SDK itself supports iOS 13.0, but in an Expo/React Native project your toolchain sets the effective minimum — e.g. Expo SDK 57's `ExpoModulesCore` requires iOS 16.4) · Android — the MyID SDK's own floor is minSdk 21; your React Native/Expo project's minimum governs in practice · React Native 0.74+ — New Architecture (current Expo SDKs are New-Architecture-only; legacy architecture only on bare React Native builds that still enable it) · works in Expo (dev builds / EAS) and bare React Native. Pinned SDKs: iOS CocoaPods [`MyIdSDK ~> 3.1.3`](https://cocoapods.org/pods/MyIdSDK), Android `uz.myid.sdk.capture:myid-capture-sdk:3.1.9` from the official `artifactory.myid.uz` repository (release/debug variants split correctly; never resolved with `+`, so a beta can never leak into your build).
 
 ## Installation — Expo (recommended)
 
@@ -270,7 +270,7 @@ Launches the native MyID flow. Resolves on success; rejects with a [`MyIdError`]
 | `distance` | `number` | SDK default | Face-distance threshold. |
 | `showErrorScreen` | `boolean` | SDK default | Whether the SDK shows its own error screen before returning. |
 | `organizationDetails` | `{ phoneNumber?, logo? }` | — | Branding inside the flow. |
-| `appearance` | [`MyIdAppearance`](./src/MyId.types.ts) | — | Colors + button radius. iOS applies programmatically; Android theming is primarily XML-resource based, so some fields may be ignored there. |
+| `appearance` | [`MyIdAppearance`](./src/MyId.types.ts) | — | Colors + button radius. **iOS-only** — applied programmatically on iOS; on Android the flow is themed via XML resources, so this object is accepted and ignored. |
 | `huaweiAppId` | `string` | — | **Android/HMS only** — for no-Google-Play devices. Ignored on iOS. |
 
 ### `MyIdResult`
@@ -299,7 +299,7 @@ isMyIdError(e: unknown): e is MyIdError  // robust across bridge/realm boundarie
 |---|---|---|
 | `cancelled` | User exited the flow. | Not an error — return to the previous screen. |
 | `permission` | Camera access denied (SDK code **102**). | Prompt to enable the camera in Settings. |
-| `network` | Connectivity/transport failure. | Offer retry. |
+| `network` | Connectivity/transport failure. The native SDK reports these as `sdk` (with a numeric `code`); `network` is currently produced only by mock mode. | Offer retry. |
 | `sdk` | The MyID SDK reported an error — inspect `code` + `nativeMessage`. | Branch on `code`; surface a friendly message. |
 | `no_activity` | Android had no foreground Activity. | Retry when the app is foregrounded. |
 | `config` | Invalid `MyIdConfig` (caught **before** the native call). | Fix the call site. |

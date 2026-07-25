@@ -116,8 +116,22 @@ class MyIdModule : Module() {
       return
     }
     pendingPromise = promise
-    val intent = client.createIntent(activity, buildConfig(record))
-    activity.startActivityForResult(intent, MY_ID_REQUEST_CODE)
+    try {
+      val intent = client.createIntent(activity, buildConfig(record))
+      activity.startActivityForResult(intent, MY_ID_REQUEST_CODE)
+    } catch (e: Throwable) {
+      // If launching the flow throws (e.g. buildConfig()/builder.build() rejects a
+      // bad value, or startActivityForResult fails), clear the pending slot via
+      // settle() — otherwise pendingPromise stays set and every later identify()
+      // is wedged into rejecting with "already in progress" until the app restarts.
+      settle(
+        mapOf(
+          "status" to "error",
+          "kind" to "sdk",
+          "message" to (e.message ?: "Failed to launch the MyID flow."),
+        )
+      )
+    }
   }
 
   private fun settle(body: Map<String, Any?>) {

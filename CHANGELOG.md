@@ -5,6 +5,25 @@ All notable changes to this project are documented here. This project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- **Android: a failed launch no longer wedges the module.** If `identify()` threw
+  while starting the native flow (e.g. the config builder rejected a value, or the
+  Activity could not start), the pending-promise slot was left set, so every later
+  call rejected with "A MyID flow is already in progress." until the app restarted.
+  The launch path is now guarded and settles a typed `sdk` error instead.
+
+### Changed
+
+- `peerDependencies` now declare real floors — `expo >=51`, `react >=18`,
+  `react-native >=0.74` — instead of `*`, matching the documented support surface.
+- Docs (README EN/RU/UZ): corrected the stated iOS platform floor. The pod targets
+  iOS 15.1; the MyID SDK itself supports 13.0, and your Expo/React Native toolchain
+  sets the effective minimum (Expo SDK 57's `ExpoModulesCore` requires iOS 16.4).
+  Clarified that current Expo SDKs are New-Architecture-only and legacy architecture
+  applies only to bare React Native. Marked `appearance` as iOS-only, and documented
+  that `MyIdError` `kind: 'network'` is currently produced only by mock mode.
+
 ## [0.1.3] - 2026-07-23
 
 ### Changed
