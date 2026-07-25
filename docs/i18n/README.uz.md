@@ -4,6 +4,12 @@
 
 > **MyID** biometrik identifikatsiyasi (yuz liveness'i / eKYC) **React Native** va **Expo** uchun — yagona typed API, to'laqonli Expo **config plugin**, New Architecture qo'llab-quvvatlashi va joriy MyID 3.1.x SDK'lari. Haqiqiy qurilmada boshdan-oxirigacha (end-to-end) tekshirilgan.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/softwhere-uz/react-native-myid/main/docs/media/myid-demo.gif" alt="react-native-myid demosi — bitta typed identify() chaqiruvi nativ MyID face-liveness'ini ishga tushiradi, so'ng typed natija va MyIdError bilan ishlash" width="720" />
+</p>
+
+<p align="center"><sub><em>Namoyish uchun ishlab chiquvchi oqimi — qurilmada MyID SDK o'zining nativ liveness interfeysini chizadi.</em></sub></p>
+
 [![npm](https://img.shields.io/npm/v/@softwhere-uz/react-native-myid.svg)](https://www.npmjs.com/package/@softwhere-uz/react-native-myid)
 [![CI](https://github.com/softwhere-uz/react-native-myid/actions/workflows/ci.yml/badge.svg)](https://github.com/softwhere-uz/react-native-myid/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT%20(wrapper%20only)-blue.svg)](../../LICENSE)

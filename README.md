@@ -4,6 +4,12 @@
 
 > **MyID** biometric identification (face liveness / eKYC) for **React Native** and **Expo** — one typed API, a first-class Expo **config plugin**, New Architecture support, and current MyID 3.1.x SDKs. Verified end-to-end on real hardware.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/softwhere-uz/react-native-myid/main/docs/media/myid-demo.gif" alt="react-native-myid demo — one typed identify() call drives native MyID face liveness, then a typed result and typed MyIdError handling" width="720" />
+</p>
+
+<p align="center"><sub><em>Illustrative developer flow — the MyID SDK renders its own native liveness UI on device.</em></sub></p>
+
 [![npm](https://img.shields.io/npm/v/@softwhere-uz/react-native-myid.svg)](https://www.npmjs.com/package/@softwhere-uz/react-native-myid)
 [![CI](https://github.com/softwhere-uz/react-native-myid/actions/workflows/ci.yml/badge.svg)](https://github.com/softwhere-uz/react-native-myid/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT%20(wrapper%20only)-blue.svg)](./LICENSE)
