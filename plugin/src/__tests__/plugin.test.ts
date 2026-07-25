@@ -1,7 +1,9 @@
 import plugin, {
   addFirebasePostInstall,
   addMavenRepository,
+  addMavenToSettingsGradle,
   mergePrivacyAccessedApiTypes,
+  settingsHasDependencyRepositories,
   MYID_PRIVACY_ACCESSED_API_TYPES,
 } from '../index';
 
@@ -52,6 +54,52 @@ describe('addMavenRepository', () => {
   it('is a no-op when there is no allprojects block', () => {
     const gradle = `buildscript {\n  repositories {\n    google()\n  }\n}\n`;
     expect(addMavenRepository(gradle, MAVEN_URL)).toBe(gradle);
+  });
+});
+
+const SETTINGS_CENTRAL = `pluginManagement { includeBuild(expoAutolinking.reactNativeGradlePlugin) }
+dependencyResolutionManagement {
+  repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+  repositories {
+    google()
+    mavenCentral()
+  }
+}
+`;
+
+describe('addMavenToSettingsGradle', () => {
+  it('injects the maven repo into the dependencyResolutionManagement repositories block', () => {
+    const out = addMavenToSettingsGradle(SETTINGS_CENTRAL, MAVEN_URL);
+    expect(out).toContain(`maven { url "${MAVEN_URL}" }`);
+    // Injected under dependencyResolutionManagement, after its repositories {.
+    const drmIdx = out.indexOf('dependencyResolutionManagement');
+    expect(out.indexOf(MAVEN_URL)).toBeGreaterThan(drmIdx);
+  });
+
+  it('is idempotent (second application does not duplicate)', () => {
+    const once = addMavenToSettingsGradle(SETTINGS_CENTRAL, MAVEN_URL);
+    const twice = addMavenToSettingsGradle(once, MAVEN_URL);
+    expect(twice).toBe(once);
+    expect(
+      twice.match(new RegExp(MAVEN_URL.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&'), 'g'))
+    ).toHaveLength(1);
+  });
+
+  it('is a no-op when there is no dependencyResolutionManagement block', () => {
+    const settings = `pluginManagement { }\nrootProject.name = 'app'\n`;
+    expect(addMavenToSettingsGradle(settings, MAVEN_URL)).toBe(settings);
+  });
+});
+
+describe('settingsHasDependencyRepositories', () => {
+  it('is true when settings.gradle centralizes repositories', () => {
+    expect(settingsHasDependencyRepositories(SETTINGS_CENTRAL)).toBe(true);
+  });
+
+  it('is false for a template with no dependencyResolutionManagement repositories', () => {
+    expect(
+      settingsHasDependencyRepositories(`pluginManagement { }\nrootProject.name = 'app'\n`)
+    ).toBe(false);
   });
 });
 

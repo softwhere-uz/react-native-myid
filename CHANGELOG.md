@@ -5,6 +5,28 @@ All notable changes to this project are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-07-26
+
+### Added
+
+- **Config plugin now supports `settings.gradle` dependency resolution.** On modern
+  Gradle/AGP templates that centralize repositories under
+  `dependencyResolutionManagement { repositories { … } }` (including
+  `repositoriesMode = FAIL_ON_PROJECT_REPOS`), the MyID Maven repo is injected there and
+  the root `allprojects` injection is skipped so it can't fail the build. Older templates
+  keep the `allprojects` path unchanged. When neither location exists, the plugin now
+  emits a prebuild warning instead of silently shipping a build that can't resolve the SDK.
+  (Surfaced by auditing competing wrappers, several of which hit this on newer Expo/RN.)
+
+### Changed
+
+- **iOS `MyIdSDK` is now pinned to an exact version (`3.1.3`, was `~> 3.1.3`)** so an
+  untested MyID SDK patch can't silently resolve into a build — matching the exact Android
+  pin and the library's "never floated" guarantee. MyID versions its iOS and Android SDKs
+  independently (iOS 3.1.3, Android 3.1.9), so the two pins differ by design.
+- The iOS podspec and Android Gradle module versions now track the package version (they
+  were stale at `0.1.0`).
+
 ## [0.1.4] - 2026-07-25
 
 ### Fixed
@@ -97,7 +119,8 @@ Docs and CI release — no runtime or API changes.
 - CI (GitHub Actions): lint, typecheck, build, tests, config-plugin prebuild
   assertions, and iOS + Android build gates.
 
-[Unreleased]: https://github.com/softwhere-uz/react-native-myid/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/softwhere-uz/react-native-myid/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/softwhere-uz/react-native-myid/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/softwhere-uz/react-native-myid/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/softwhere-uz/react-native-myid/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/softwhere-uz/react-native-myid/compare/v0.1.1...v0.1.2

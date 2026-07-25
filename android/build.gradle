@@ -4,13 +4,13 @@ plugins {
 }
 
 group = 'uz.softwhere.myid'
-version = '0.1.0'
+version = '0.1.5'
 
 android {
   namespace "uz.softwhere.myid"
   defaultConfig {
     versionCode 1
-    versionName "0.1.0"
+    versionName "0.1.5"
   }
   lintOptions {
     abortOnError false
