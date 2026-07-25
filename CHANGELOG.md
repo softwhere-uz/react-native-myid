@@ -5,6 +5,8 @@ All notable changes to this project are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-07-26
+
 ### Added
 
 - **Config plugin now supports `settings.gradle` dependency resolution.** On modern
@@ -117,7 +119,8 @@ Docs and CI release — no runtime or API changes.
 - CI (GitHub Actions): lint, typecheck, build, tests, config-plugin prebuild
   assertions, and iOS + Android build gates.
 
-[Unreleased]: https://github.com/softwhere-uz/react-native-myid/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/softwhere-uz/react-native-myid/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/softwhere-uz/react-native-myid/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/softwhere-uz/react-native-myid/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/softwhere-uz/react-native-myid/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/softwhere-uz/react-native-myid/compare/v0.1.1...v0.1.2
