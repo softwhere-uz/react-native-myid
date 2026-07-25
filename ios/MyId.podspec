@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name           = 'MyId'
-  s.version        = '0.1.5'
+  s.version        = '0.1.6'
   s.summary        = 'MyID biometric eKYC (face liveness) for React Native & Expo.'
   s.description    = 'iOS bridge for the MyID SDK, exposed to React Native via the Expo Modules API.'
   s.author         = { 'Kamronbek Juraev' => 'kamuranbek1998@gmail.com' }
