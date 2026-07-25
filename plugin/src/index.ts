@@ -2,12 +2,16 @@ import {
   AndroidConfig,
   ConfigPlugin,
   IOSConfig,
+  WarningAggregator,
   createRunOncePlugin,
   withInfoPlist,
   withPodfile,
   withPodfileProperties,
   withProjectBuildGradle,
+  withSettingsGradle,
 } from '@expo/config-plugins';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 const PLUGIN_NAME = '@softwhere-uz/react-native-myid';
 // Resolved from package.json so version bumps never touch plugin source
@@ -21,6 +25,8 @@ const DEFAULT_CAMERA_PERMISSION =
   'Allow $(PRODUCT_NAME) to access your camera to verify your identity with MyID.';
 
 const MAVEN_MARKER = 'react-native-myid: MyID SDK maven repository';
+const SETTINGS_MAVEN_MARKER =
+  'react-native-myid: MyID SDK maven repository (dependencyResolutionManagement)';
 const FIREBASE_MARKER = 'react-native-myid: relax non-modular includes for static frameworks';
 
 /** Configuration for the `@softwhere-uz/react-native-myid` Expo config plugin. */
@@ -106,6 +112,40 @@ export function addMavenRepository(contents: string, url: string): string {
 }
 
 /**
+ * Inject a Maven repository into `settings.gradle`'s
+ * `dependencyResolutionManagement { repositories { … } }` block — where modern
+ * Gradle (`repositoriesMode = PREFER_SETTINGS` / `FAIL_ON_PROJECT_REPOS`)
+ * expects app-wide repos, and where a root-`build.gradle` `allprojects` repo is
+ * ignored or outright rejected. Idempotent; a no-op if the URL is already
+ * present or there is no such block to target.
+ */
+export function addMavenToSettingsGradle(contents: string, url: string): string {
+  if (contents.includes(url)) {
+    return contents;
+  }
+  const anchor = /dependencyResolutionManagement\s*\{[\s\S]*?repositories\s*\{/;
+  const match = contents.match(anchor);
+  if (match == null || match.index == null) {
+    return contents;
+  }
+  const insertAt = match.index + match[0].length;
+  const injection = `\n      // ${SETTINGS_MAVEN_MARKER}\n      maven { url "${url}" }`;
+  return contents.slice(0, insertAt) + injection + contents.slice(insertAt);
+}
+
+/**
+ * Whether `settings.gradle` centralizes repositories in a
+ * `dependencyResolutionManagement { repositories { … } }` block. When it does,
+ * that block is the canonical place for the MyID repo (see
+ * {@link addMavenToSettingsGradle}), so the root-`build.gradle` `allprojects`
+ * injection is skipped to avoid a redundant — or, under
+ * `FAIL_ON_PROJECT_REPOS`, build-breaking — declaration.
+ */
+export function settingsHasDependencyRepositories(contents: string): boolean {
+  return /dependencyResolutionManagement\s*\{[\s\S]*?repositories\s*\{/.test(contents);
+}
+
+/**
  * Merge MyID's required-reason API types into an existing list, deduplicating
  * by category and unioning reason codes. Idempotent.
  */
@@ -173,15 +213,54 @@ const withMyIdAndroid: ConfigPlugin<MyIdPluginProps> = (config, props) => {
   ]);
 
   const url = props.androidMavenUrl ?? DEFAULT_MAVEN_URL;
-  return withProjectBuildGradle(config, (mod) => {
+
+  // (1) Modern Gradle: add the repo to settings.gradle's
+  //     `dependencyResolutionManagement`. A no-op when that block is absent
+  //     (older templates), so it's always safe to run.
+  config = withSettingsGradle(config, (mod) => {
     if (mod.modResults.language === 'groovy') {
-      mod.modResults.contents = addMavenRepository(mod.modResults.contents, url);
-    } else {
+      mod.modResults.contents = addMavenToSettingsGradle(mod.modResults.contents, url);
+    }
+    return mod;
+  });
+
+  // (2) Older templates: add the repo to the root build.gradle `allprojects`
+  //     block — UNLESS settings.gradle centralizes repos, in which case (1)
+  //     already placed it and an `allprojects` repo would be redundant or, under
+  //     `FAIL_ON_PROJECT_REPOS`, fail the build.
+  return withProjectBuildGradle(config, (mod) => {
+    if (mod.modResults.language !== 'groovy') {
       throw new Error(
         `[${PLUGIN_NAME}] Cannot add the MyID Maven repository to a Kotlin (.kts) root build.gradle. ` +
-          `Add \`maven { url "${url}" }\` to your allprojects/repositories manually.`
+          `Add \`maven { url "${url}" }\` to your allprojects/repositories (or settings.gradle ` +
+          `dependencyResolutionManagement) manually.`
       );
     }
+
+    let settings = '';
+    try {
+      settings = readFileSync(join(mod.modRequest.platformProjectRoot, 'settings.gradle'), 'utf8');
+    } catch {
+      // No readable settings.gradle — fall through to the allprojects path.
+    }
+    if (settingsHasDependencyRepositories(settings)) {
+      return mod; // handled by the settings.gradle mod above
+    }
+
+    const before = mod.modResults.contents;
+    const after = addMavenRepository(before, url);
+    if (after === before && !before.includes(url)) {
+      // No `allprojects { repositories { … } }` anchor and no
+      // dependencyResolutionManagement block to fall back on — warn rather than
+      // silently ship a build that can't resolve the MyID SDK.
+      WarningAggregator.addWarningAndroid(
+        PLUGIN_NAME,
+        `Could not find an \`allprojects { repositories { … } }\` block in the root build.gradle, ` +
+          `and settings.gradle has no \`dependencyResolutionManagement\` block. Add ` +
+          `\`maven { url "${url}" }\` to your Gradle repositories manually so the MyID SDK resolves.`
+      );
+    }
+    mod.modResults.contents = after;
     return mod;
   });
 };
