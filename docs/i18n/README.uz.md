@@ -91,7 +91,7 @@ To'liq platforma ma'lumotnomasi: [MyID hujjatlari — Mobile SDK (yangi oqim)](h
 | Har bir tekshiruv uchun `sessionId` | **Sizning backend'ingiz** | `POST /api/v2/sdk/sessions` orqali yaratilgan UUID4. Bir martalik, amal qilish muddati 10 daqiqa. |
 | Jismoniy qurilma | — | Liveness haqiqiy kamera talab qiladi; simulator/emulatorlar jarayonni yakunlay olmaydi. |
 
-**Platforma minimumlari:** iOS 13.0+ · Android — MyID SDK'ning o'z minimumi minSdk 21; amalda React Native/Expo loyihangizning minimal qiymati hal qiluvchi · React Native 0.74+ (New Architecture va legacy) · Expo'da (dev build / EAS) hamda bare React Native'da ishlaydi. Qadab qo'yilgan (pinned) SDK'lar: iOS CocoaPods [`MyIdSDK ~> 3.1.3`](https://cocoapods.org/pods/MyIdSDK), Android `uz.myid.sdk.capture:myid-capture-sdk:3.1.9` rasmiy `artifactory.myid.uz` repozitoriysidan (release/debug variantlari to'g'ri ajratilgan; hech qachon `+` bilan resolve qilinmaydi, shuning uchun beta versiya build'ingizga hech qachon sizib kira olmaydi).
+**Platforma minimumlari:** iOS 15.1+ (shu paketning pod minimumi; MyID SDK'ning o'zi iOS 13.0'ni qo'llab-quvvatlaydi, biroq Expo/React Native loyihasida amaldagi minimumni asboblaringiz belgilaydi — masalan, Expo SDK 57'dagi `ExpoModulesCore` iOS 16.4'ni talab qiladi) · Android — MyID SDK'ning o'z minimumi minSdk 21; amalda React Native/Expo loyihangizning minimal qiymati hal qiluvchi · React Native 0.74+ — New Architecture (joriy Expo SDK'lar faqat New Architecture'da ishlaydi; legacy arxitektura faqat uni hali yoqib qo'ygan bare React Native build'larida) · Expo'da (dev build / EAS) hamda bare React Native'da ishlaydi. Qadab qo'yilgan (pinned) SDK'lar: iOS CocoaPods [`MyIdSDK ~> 3.1.3`](https://cocoapods.org/pods/MyIdSDK), Android `uz.myid.sdk.capture:myid-capture-sdk:3.1.9` rasmiy `artifactory.myid.uz` repozitoriysidan (release/debug variantlari to'g'ri ajratilgan; hech qachon `+` bilan resolve qilinmaydi, shuning uchun beta versiya build'ingizga hech qachon sizib kira olmaydi).
 
 ## O'rnatish — Expo (tavsiya etiladi)
 
@@ -270,7 +270,7 @@ Native MyID jarayonini ishga tushiradi. Muvaffaqiyatda resolve bo'ladi; aks hold
 | `distance` | `number` | SDK default'i | Yuz masofasi bo'yicha chegara qiymati. |
 | `showErrorScreen` | `boolean` | SDK default'i | SDK qaytishdan oldin o'zining xatolik ekranini ko'rsatishi-ko'rsatmasligi. |
 | `organizationDetails` | `{ phoneNumber?, logo? }` | — | Jarayon ichidagi brending. |
-| `appearance` | [`MyIdAppearance`](../../src/MyId.types.ts) | — | Ranglar + tugma radiusi. iOS'da dasturiy tarzda qo'llanadi; Android'da tema asosan XML-resurslarga asoslangan, shu bois ba'zi maydonlar u yerda e'tiborga olinmasligi mumkin. |
+| `appearance` | [`MyIdAppearance`](../../src/MyId.types.ts) | — | Ranglar + tugma radiusi. **Faqat iOS** — iOS'da dasturiy tarzda qo'llanadi; Android'da oqim XML-resurslar orqali temalanadi, shu bois bu obyekt qabul qilinadi-yu, e'tiborga olinmaydi. |
 | `huaweiAppId` | `string` | — | **Faqat Android/HMS** — Google Play bo'lmagan qurilmalar uchun. iOS'da e'tiborga olinmaydi. |
 
 ### `MyIdResult`
@@ -299,7 +299,7 @@ isMyIdError(e: unknown): e is MyIdError  // bridge/realm chegaralari bo'ylab ish
 |---|---|---|
 | `cancelled` | Foydalanuvchi jarayondan chiqdi. | Xatolik emas — oldingi ekranga qayting. |
 | `permission` | Kameraga ruxsat rad etilgan (SDK kodi **102**). | Sozlamalarda kamerani yoqishni taklif qiling. |
-| `network` | Aloqa/transport xatosi. | Qayta urinishni taklif qiling. |
+| `network` | Aloqa/transport xatosi. Nativ SDK bularni `sdk` sifatida (raqamli `code` bilan) qaytaradi; `network` hozircha faqat mock rejimida hosil bo'ladi. | Qayta urinishni taklif qiling. |
 | `sdk` | MyID SDK xatolik qaytardi — `code` + `nativeMessage`ni tekshiring. | `code` bo'yicha tarmoqlaning; foydalanuvchiga tushunarli xabar ko'rsating. |
 | `no_activity` | Android'da foreground Activity yo'q edi. | Ilova foreground'ga qaytganda qayta urining. |
 | `config` | Noto'g'ri `MyIdConfig` (native chaqiruvdan **oldin** ushlanadi). | Chaqiruv joyini to'g'rilang. |

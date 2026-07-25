@@ -91,7 +91,7 @@ sequenceDiagram
 | `sessionId` на каждую верификацию | **Ваш бэкенд** | UUID4, выпускаемый через `POST /api/v2/sdk/sessions`. Одноразовый, живёт 10 минут. |
 | Физическое устройство | — | Liveness требует настоящей камеры; симуляторы/эмуляторы не могут пройти флоу. |
 
-**Минимальные версии платформ:** iOS 13.0+ · Android — собственный минимум MyID SDK — minSdk 21; на практике определяющим является минимум вашего React Native/Expo-проекта · React Native 0.74+ (New Architecture и legacy) · работает в Expo (development-сборки / EAS) и в bare React Native. Зафиксированные SDK: iOS — CocoaPods [`MyIdSDK ~> 3.1.3`](https://cocoapods.org/pods/MyIdSDK), Android — `uz.myid.sdk.capture:myid-capture-sdk:3.1.9` из официального репозитория `artifactory.myid.uz` (варианты release/debug разведены корректно; версия никогда не резолвится через `+`, поэтому бета не может незаметно попасть в вашу сборку).
+**Минимальные версии платформ:** iOS 15.1+ (минимум пода этого пакета; сам MyID SDK поддерживает iOS 13.0, но в Expo/React Native-проекте фактический минимум задаёт ваш инструментарий — например, `ExpoModulesCore` в Expo SDK 57 требует iOS 16.4) · Android — собственный минимум MyID SDK — minSdk 21; на практике определяющим является минимум вашего React Native/Expo-проекта · React Native 0.74+ — New Architecture (текущие Expo SDK работают только на New Architecture; legacy-архитектура — только в bare React Native-сборках, где она ещё включена) · работает в Expo (development-сборки / EAS) и в bare React Native. Зафиксированные SDK: iOS — CocoaPods [`MyIdSDK ~> 3.1.3`](https://cocoapods.org/pods/MyIdSDK), Android — `uz.myid.sdk.capture:myid-capture-sdk:3.1.9` из официального репозитория `artifactory.myid.uz` (варианты release/debug разведены корректно; версия никогда не резолвится через `+`, поэтому бета не может незаметно попасть в вашу сборку).
 
 ## Установка — Expo (рекомендуется)
 
@@ -270,7 +270,7 @@ const profile = await fetch(`${MYID_HOST}/api/v1/sdk/data?code=${code}`, {
 | `distance` | `number` | значение SDK по умолчанию | Порог расстояния до лица. |
 | `showErrorScreen` | `boolean` | значение SDK по умолчанию | Показывать ли собственный экран ошибки SDK перед возвратом. |
 | `organizationDetails` | `{ phoneNumber?, logo? }` | — | Брендирование внутри флоу. |
-| `appearance` | [`MyIdAppearance`](../../src/MyId.types.ts) | — | Цвета + скругление кнопок. На iOS применяется программно; на Android темизация в основном опирается на XML-ресурсы, поэтому часть полей там может игнорироваться. |
+| `appearance` | [`MyIdAppearance`](../../src/MyId.types.ts) | — | Цвета + скругление кнопок. **Только iOS** — на iOS применяется программно; на Android оформление задаётся XML-ресурсами, поэтому этот объект принимается и игнорируется. |
 | `huaweiAppId` | `string` | — | **Только Android/HMS** — для устройств без Google Play. На iOS игнорируется. |
 
 ### `MyIdResult`
@@ -299,7 +299,7 @@ isMyIdError(e: unknown): e is MyIdError  // надёжно работает че
 |---|---|---|
 | `cancelled` | Пользователь вышел из флоу. | Не ошибка — вернитесь на предыдущий экран. |
 | `permission` | Отказано в доступе к камере (код SDK **102**). | Предложите включить камеру в настройках. |
-| `network` | Сбой соединения/транспорта. | Предложите повторить попытку. |
+| `network` | Сбой соединения/транспорта. Нативный SDK возвращает такие ошибки как `sdk` (с числовым `code`); `network` сейчас формируется только в mock-режиме. | Предложите повторить попытку. |
 | `sdk` | MyID SDK сообщил об ошибке — смотрите `code` + `nativeMessage`. | Ветвитесь по `code`; показывайте понятное пользователю сообщение. |
 | `no_activity` | На Android не было Activity на переднем плане. | Повторите, когда приложение снова на переднем плане. |
 | `config` | Некорректный `MyIdConfig` (перехватывается **до** нативного вызова). | Исправьте место вызова. |

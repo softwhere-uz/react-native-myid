@@ -28,9 +28,10 @@ export type MyIdCameraSelector = 'FRONT' | 'BACK';
 /**
  * Optional look-and-feel overrides. Colors are hex strings (e.g. `#0A84FF`).
  *
- * Parity note: on iOS these map to `MyIdAppearance` (applied programmatically);
- * on Android theming is primarily XML-resource based, so some fields may be
- * ignored there. Colors that both platforms honor are the safest to set.
+ * Parity note: **iOS-only.** On iOS these map to the native `MyIdAppearance`
+ * (applied programmatically). On Android the MyID flow is themed via XML
+ * resources, so this whole object is currently accepted and ignored — style the
+ * Android flow with an app theme instead.
  */
 export interface MyIdAppearance {
   colorPrimary?: string;
@@ -115,7 +116,9 @@ export interface MyIdResult {
  *
  * - `cancelled`   — the user exited the flow (not an error condition).
  * - `permission`  — camera permission denied.
- * - `network`     — connectivity/backend transport failure.
+ * - `network`     — connectivity/backend transport failure. Reserved: the native
+ *                   SDK reports transport errors as `sdk` with a numeric `code`,
+ *                   so on-device this kind is currently only produced by mock mode.
  * - `sdk`         — the MyID SDK reported an error (see `code`).
  * - `no_activity` — Android had no current Activity to launch into.
  * - `config`      — invalid {@link MyIdConfig} passed by the caller.
