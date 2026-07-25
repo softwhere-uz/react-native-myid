@@ -31,6 +31,7 @@
 - [Installation — bare React Native](#installation--bare-react-native)
 - [Quickstart](#quickstart)
 - [Your backend: minting a session](#your-backend-minting-a-session)
+- [Verifying on your backend](#verifying-on-your-backend)
 - [API reference](#api-reference)
 - [Error handling](#error-handling)
 - [Mock mode](#mock-mode)
@@ -224,6 +225,12 @@ A user closing the flow is a **first-class outcome** (`kind: 'cancelled'`), not 
 Sessions are minted **backend-to-backend** with your MyID API credentials ([official docs](https://docs.myid.uz/#/en/sdknew)). Minimal Node/TypeScript sketch:
 
 ```ts
+// Any non-2xx from MyID must fail loudly — a bad response is never a valid result.
+const json = async (r: Response) => {
+  if (!r.ok) throw new Error(`MyID ${r.status}: ${await r.text()}`);
+  return r.json();
+};
+
 // 1) Access token — cache it; it lives 7 days (expires_in: 604800).
 const { access_token } = await fetch(`${MYID_HOST}/api/v1/auth/clients/access-token`, {
   method: 'POST',
@@ -232,7 +239,7 @@ const { access_token } = await fetch(`${MYID_HOST}/api/v1/auth/clients/access-to
     client_id: process.env.MYID_CLIENT_ID,        // backend env vars —
     client_secret: process.env.MYID_CLIENT_SECRET, // NEVER in the mobile app
   }),
-}).then(r => r.json());
+}).then(json);
 
 // 2) Session — single-use, valid 10 minutes. Empty body = the SDK shows its
 //    own passport-input screen; or pre-fill with pass_data/pinfl + birth_date.
@@ -240,18 +247,57 @@ const { session_id } = await fetch(`${MYID_HOST}/api/v2/sdk/sessions`, {
   method: 'POST',
   headers: { Authorization: `Bearer ${access_token}`, 'Content-Type': 'application/json' },
   body: JSON.stringify({}),
-}).then(r => r.json());
+}).then(json);
 // → hand session_id (a UUID4) to the app for identify()
 
 // 3) After the app returns result.code (one-time, 5-minute TTL):
 const profile = await fetch(`${MYID_HOST}/api/v1/sdk/data?code=${code}`, {
   headers: { Authorization: `Bearer ${access_token}` },
-}).then(r => r.json());
+}).then(json);
 // → profile.comparison_value, profile.profile.*, profile.reuid (for the
 //   Secondary Request Flow — re-verifying a known user without passport data)
 ```
 
 If the app never comes back (crash, abandonment), recover server-side: `GET /api/v1/sdk/sessions/{session_id}` → `{ code, status: 'in_progress' | 'closed' | 'expired', attempts[] }`.
+
+## Verifying on your backend
+
+The device hands you a `code`. That is **not** a verified identity — it is a claim your backend has to redeem and *judge*. Everything that decides *"is this really them, and is the match good enough?"* happens server-side with your `access_token`. Skip it and a rooted device, a replayed response, or a hand-built `result` object walks straight through your auth. This is the single most common — and most expensive — integration mistake.
+
+The [minting sketch above](#your-backend-minting-a-session) shows the redeem call; here is what to actually *do* with what comes back:
+
+```ts
+// Redeem the one-time code (5-min TTL) with your cached access_token.
+const res = await fetch(`${MYID_HOST}/api/v1/sdk/data?code=${encodeURIComponent(code)}`, {
+  headers: { Authorization: `Bearer ${access_token}` },
+});
+if (!res.ok) {
+  // A non-2xx here means the code was already used, expired, or never real — reject.
+  throw new Error(`MyID redeem failed: ${res.status}`);
+}
+const data = await res.json();
+
+// 1) The match score is authoritative — but pass/fail is YOUR call, not the SDK's.
+if (data.comparison_value == null || data.comparison_value < YOUR_THRESHOLD) {
+  throw new Error('Face match below threshold — reject.');
+}
+
+// 2) Bind the identity: confirm data.profile (name, PINFL, passport, …) is the
+//    account this user claims — a live match to the WRONG person is still wrong.
+
+// 3) Persist data.reuid to re-verify this user later (Secondary Request Flow).
+```
+
+**Set the threshold deliberately.** `comparison_value` from this endpoint is the authoritative face-match score — the SDK's own `comparison` field is advisory and absent on some builds (iOS 3.1.3). The *floor* you compare it against is a risk decision: choose it for your contract and use case, never a copy-pasted constant.
+
+**A passing score is not authorization.** It proves the face is live and matches *a* record; your app still has to confirm the returned identity is the one this session is acting for. Authenticate the person, then authorize the action separately.
+
+**Re-verifying a known user (Secondary Request Flow).** Once you've stored a user's `reuid`, mint later sessions with that `reuid` instead of passport data — the user just re-confirms with their face, and you run the same redeem-and-threshold check on the way back.
+
+If the app crashes or is backgrounded before you receive `result.code`, don't drop the verification — recover it from the session server-side, as shown at the end of [minting a session](#your-backend-minting-a-session).
+
+> [!IMPORTANT]
+> All of this lives on your backend, behind your `access_token`. The app never sees `client_secret`, never picks the threshold, and its `result` is only ever a pointer to work your server still has to finish.
 
 ## API reference
 
@@ -379,6 +425,7 @@ Verified in each: native module registration, the full mock API, config validati
 ## Guides & articles
 
 - [MyID in React Native and Expo: the complete integration guide (2026)](https://medium.com/@kamuranbek1998/myid-in-react-native-and-expo-the-complete-integration-guide-2026-5efabc862cfb) — session flow, both install paths, error handling, and field notes, on Medium.
+- [Как завернуть коммерческий биометрический SDK в React Native: разбор на примере MyID](https://habr.com/ru/articles/1062676/) — Russian-language tutorial on Habr covering the same session flow, the iOS static-frameworks/privacy-manifest pitfalls, and typed error handling.
 
 ## Comparison with other wrappers
 

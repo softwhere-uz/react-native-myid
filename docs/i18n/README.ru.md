@@ -31,6 +31,7 @@
 - [Установка — bare React Native](#установка--bare-react-native)
 - [Быстрый старт](#быстрый-старт)
 - [Ваш бэкенд: выпуск сессии](#ваш-бэкенд-выпуск-сессии)
+- [Проверка на вашем бэкенде](#проверка-на-вашем-бэкенде)
 - [Справочник API](#справочник-api)
 - [Обработка ошибок](#обработка-ошибок)
 - [Мок-режим](#мок-режим)
@@ -224,6 +225,12 @@ export async function verifyUser(sessionId: string): Promise<MyIdResult | null> 
 Сессии выпускаются **бэкенд-к-бэкенду** с вашими учётными данными MyID API ([официальная документация](https://docs.myid.uz/#/en/sdknew)). Минимальный набросок на Node/TypeScript:
 
 ```ts
+// Любой не-2xx от MyID должен падать явно — плохой ответ никогда не бывает валидным результатом.
+const json = async (r: Response) => {
+  if (!r.ok) throw new Error(`MyID ${r.status}: ${await r.text()}`);
+  return r.json();
+};
+
 // 1) Токен доступа — кэшируйте его; он живёт 7 дней (expires_in: 604800).
 const { access_token } = await fetch(`${MYID_HOST}/api/v1/auth/clients/access-token`, {
   method: 'POST',
@@ -232,7 +239,7 @@ const { access_token } = await fetch(`${MYID_HOST}/api/v1/auth/clients/access-to
     client_id: process.env.MYID_CLIENT_ID,        // переменные окружения бэкенда —
     client_secret: process.env.MYID_CLIENT_SECRET, // НИКОГДА не в мобильном приложении
   }),
-}).then(r => r.json());
+}).then(json);
 
 // 2) Сессия — одноразовая, действует 10 минут. Пустое тело = SDK покажет
 //    собственный экран ввода паспорта; либо предзаполните pass_data/pinfl + birth_date.
@@ -240,18 +247,57 @@ const { session_id } = await fetch(`${MYID_HOST}/api/v2/sdk/sessions`, {
   method: 'POST',
   headers: { Authorization: `Bearer ${access_token}`, 'Content-Type': 'application/json' },
   body: JSON.stringify({}),
-}).then(r => r.json());
+}).then(json);
 // → передайте session_id (UUID4) приложению для identify()
 
 // 3) После того как приложение вернёт result.code (одноразовый, TTL 5 минут):
 const profile = await fetch(`${MYID_HOST}/api/v1/sdk/data?code=${code}`, {
   headers: { Authorization: `Bearer ${access_token}` },
-}).then(r => r.json());
+}).then(json);
 // → profile.comparison_value, profile.profile.*, profile.reuid (для
 //   Secondary Request Flow — повторной верификации известного пользователя без паспортных данных)
 ```
 
 Если приложение так и не вернулось (краш, пользователь бросил флоу), восстановитесь на стороне сервера: `GET /api/v1/sdk/sessions/{session_id}` → `{ code, status: 'in_progress' | 'closed' | 'expired', attempts[] }`.
+
+## Проверка на вашем бэкенде
+
+Устройство отдаёт вам `code`. Это **не** верифицированная личность — это лишь заявление, которое ваш бэкенд обязан обменять и *оценить*. Всё, что решает *«точно ли это он и достаточно ли уверенное совпадение?»*, происходит на сервере, с вашим `access_token`. Пропустите это — и рутованное устройство, повторно проигранный ответ или собранный вручную объект `result` пройдут прямо сквозь вашу авторизацию. Это самая частая — и самая дорогая — ошибка интеграции.
+
+[Набросок выпуска сессии выше](#ваш-бэкенд-выпуск-сессии) показывает сам запрос обмена; вот что нужно *делать* с тем, что вернулось:
+
+```ts
+// Обменяйте одноразовый код (TTL 5 минут) на данные с кэшированным access_token.
+const res = await fetch(`${MYID_HOST}/api/v1/sdk/data?code=${encodeURIComponent(code)}`, {
+  headers: { Authorization: `Bearer ${access_token}` },
+});
+if (!res.ok) {
+  // Не-2xx здесь означает: код уже использован, истёк или не существовал — отклоняйте.
+  throw new Error(`MyID redeem failed: ${res.status}`);
+}
+const data = await res.json();
+
+// 1) Оценка совпадения авторитетна — но «принять/отклонить» решаете ВЫ, а не SDK.
+if (data.comparison_value == null || data.comparison_value < YOUR_THRESHOLD) {
+  throw new Error('Face match below threshold — reject.');
+}
+
+// 2) Свяжите личность: убедитесь, что data.profile (имя, ПИНФЛ, паспорт, …) — тот
+//    аккаунт, за который выдаёт себя пользователь; совпадение с НЕ тем — тоже ошибка.
+
+// 3) Сохраните data.reuid для повторной верификации позже (Secondary Request Flow).
+```
+
+**Выбирайте порог осознанно.** `comparison_value` из этого эндпоинта — авторитетная оценка совпадения лица; собственное поле SDK `comparison` носит справочный характер и на части сборок отсутствует (iOS 3.1.3). *Планка*, с которой вы его сравниваете, — это решение о рисках: выбирайте её под ваш договор и сценарий, а не как скопированную константу.
+
+**Пройденный порог — это ещё не авторизация.** Он доказывает, что лицо живое и совпадает с *некоторой* записью; вашему приложению всё ещё нужно убедиться, что возвращённая личность — именно та, за которую действует эта сессия. Сначала аутентифицируйте человека, затем отдельно авторизуйте действие.
+
+**Повторная верификация известного пользователя (Secondary Request Flow).** Сохранив `reuid` пользователя, выпускайте последующие сессии с этим `reuid` вместо паспортных данных — пользователь лишь заново подтверждает лицом, а вы на обратном пути выполняете ту же проверку обмена и порога.
+
+Если приложение упало или ушло в фон до того, как вы получили `result.code`, не теряйте верификацию — восстановите её из сессии на стороне сервера, как показано в конце раздела [выпуска сессии](#ваш-бэкенд-выпуск-сессии).
+
+> [!IMPORTANT]
+> Всё это живёт на вашем бэкенде, за вашим `access_token`. Приложение никогда не видит `client_secret`, не выбирает порог, а его `result` — всегда лишь указатель на работу, которую ещё предстоит выполнить вашему серверу.
 
 ## Справочник API
 
@@ -378,7 +424,8 @@ setMockMode(null);                                         // назад к ре
 
 ## Гайды и статьи
 
-- [MyID in React Native and Expo: the complete integration guide (2026)](https://medium.com/@kamuranbek1998/myid-in-react-native-and-expo-the-complete-integration-guide-2026-5efabc862cfb) — сессионный флоу, оба пути установки, обработка ошибок и заметки из практики; статья на Medium.
+- [Как завернуть коммерческий биометрический SDK в React Native: разбор на примере MyID](https://habr.com/ru/articles/1062676/) — туториал на Habr: сессионный флоу, статические фреймворки и privacy-манифест на iOS, обработка ошибок и заметки из практики.
+- [MyID in React Native and Expo: the complete integration guide (2026)](https://medium.com/@kamuranbek1998/myid-in-react-native-and-expo-the-complete-integration-guide-2026-5efabc862cfb) — та же тема на английском; статья на Medium.
 
 ## Сравнение с другими обёртками
 

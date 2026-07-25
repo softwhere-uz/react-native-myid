@@ -31,6 +31,7 @@
 - [O'rnatish — bare React Native](#ornatish--bare-react-native)
 - [Tezkor boshlash](#tezkor-boshlash)
 - [Sizning backend'ingiz: session yaratish](#sizning-backendingiz-session-yaratish)
+- [Backend'ingizda tekshirish](#backendingizda-tekshirish)
 - [API ma'lumotnomasi](#api-malumotnomasi)
 - [Xatoliklar bilan ishlash](#xatoliklar-bilan-ishlash)
 - [Mock rejimi](#mock-rejimi)
@@ -224,6 +225,12 @@ Foydalanuvchining jarayonni yopishi — **birinchi darajali natija** (`kind: 'ca
 Session'lar MyID API hisob ma'lumotlaringiz bilan **backend'dan backend'ga** yaratiladi ([rasmiy hujjatlar](https://docs.myid.uz/#/en/sdknew)). Minimal Node/TypeScript namunasi:
 
 ```ts
+// MyID'dan 2xx bo'lmagan har qanday javob aniq xato berishi kerak — yomon javob hech qachon to'g'ri natija emas.
+const json = async (r: Response) => {
+  if (!r.ok) throw new Error(`MyID ${r.status}: ${await r.text()}`);
+  return r.json();
+};
+
 // 1) Access token — keshlab qo'ying; u 7 kun amal qiladi (expires_in: 604800).
 const { access_token } = await fetch(`${MYID_HOST}/api/v1/auth/clients/access-token`, {
   method: 'POST',
@@ -232,7 +239,7 @@ const { access_token } = await fetch(`${MYID_HOST}/api/v1/auth/clients/access-to
     client_id: process.env.MYID_CLIENT_ID,        // backend env o'zgaruvchilari —
     client_secret: process.env.MYID_CLIENT_SECRET, // HECH QACHON mobil ilovada emas
   }),
-}).then(r => r.json());
+}).then(json);
 
 // 2) Session — bir martalik, 10 daqiqa amal qiladi. Bo'sh body = SDK o'zining
 //    pasport kiritish ekranini ko'rsatadi; yoki pass_data/pinfl + birth_date bilan oldindan to'ldiring.
@@ -240,18 +247,57 @@ const { session_id } = await fetch(`${MYID_HOST}/api/v2/sdk/sessions`, {
   method: 'POST',
   headers: { Authorization: `Bearer ${access_token}`, 'Content-Type': 'application/json' },
   body: JSON.stringify({}),
-}).then(r => r.json());
+}).then(json);
 // → session_id (UUID4) ni identify() uchun ilovaga uzating
 
 // 3) Ilova result.code qaytargandan so'ng (bir martalik, TTL 5 daqiqa):
 const profile = await fetch(`${MYID_HOST}/api/v1/sdk/data?code=${code}`, {
   headers: { Authorization: `Bearer ${access_token}` },
-}).then(r => r.json());
+}).then(json);
 // → profile.comparison_value, profile.profile.*, profile.reuid (Secondary
 //   Request Flow uchun — ma'lum foydalanuvchini pasport ma'lumotlarisiz qayta tekshirish)
 ```
 
 Agar ilova qaytib kelmasa (crash, foydalanuvchi tashlab ketishi), server tomonida tiklang: `GET /api/v1/sdk/sessions/{session_id}` → `{ code, status: 'in_progress' | 'closed' | 'expired', attempts[] }`.
+
+## Backend'ingizda tekshirish
+
+Qurilma sizga `code` beradi. Bu **tasdiqlangan shaxs emas** — bu backend'ingiz almashtirib, *baholashi* shart bo'lgan da'vo xolos. *«Bu haqiqatan o'shami va moslik yetarlicha ishonchlimi?»* degan qarorning barchasi server tomonida, sizning `access_token`ingiz bilan bo'ladi. Buni o'tkazib yuborsangiz — root qilingan qurilma, qayta o'ynatilgan javob yoki qo'lda yasalgan `result` obyekti to'g'ridan-to'g'ri avtorizatsiyangizdan o'tib ketadi. Bu — eng ko'p uchraydigan va eng qimmatga tushadigan integratsiya xatosi.
+
+[Yuqoridagi session yaratish namunasi](#sizning-backendingiz-session-yaratish) almashtirish so'rovini ko'rsatadi; endi qaytgan narsa bilan aynan nima *qilish* kerak:
+
+```ts
+// Bir martalik kodni (TTL 5 daqiqa) keshlangan access_token bilan almashtiring.
+const res = await fetch(`${MYID_HOST}/api/v1/sdk/data?code=${encodeURIComponent(code)}`, {
+  headers: { Authorization: `Bearer ${access_token}` },
+});
+if (!res.ok) {
+  // 2xx bo'lmagan javob — kod ishlatilgan, muddati o'tgan yoki mavjud emas — rad eting.
+  throw new Error(`MyID redeem failed: ${res.status}`);
+}
+const data = await res.json();
+
+// 1) Moslik bahosi ishonchli manba — lekin «qabul/rad» qarori SDK'niki emas, SIZNIKI.
+if (data.comparison_value == null || data.comparison_value < YOUR_THRESHOLD) {
+  throw new Error('Face match below threshold — reject.');
+}
+
+// 2) Shaxsni bog'lang: data.profile (ism, JSHSHIR, pasport, …) foydalanuvchi da'vo
+//    qilgan akkauntligini tasdiqlang; NOTO'G'RI odam bilan moslik — baribir xato.
+
+// 3) Keyin qayta tekshirish uchun data.reuid'ni saqlang (Secondary Request Flow).
+```
+
+**Chegara qiymatini ongli tanlang.** Bu endpoint'dan keladigan `comparison_value` — yuz mosligining ishonchli bahosi; SDK'ning o'z `comparison` maydoni ma'lumot uchun bo'lib, ba'zi build'larda mavjud emas (iOS 3.1.3). Uni solishtiradigan *chegara* — bu xavf-xatar qarori: uni skopirovka qilingan konstanta emas, o'z shartnomangiz va foydalanish stsenariyingizga qarab tanlang.
+
+**O'tgan chegara — bu hali avtorizatsiya emas.** U yuz jonli ekanini va *biror* yozuvga mosligini isbotlaydi; ilovangiz baribir qaytgan shaxs aynan shu session harakat qilayotgan shaxs ekanini tasdiqlashi kerak. Avval odamni autentifikatsiya qiling, so'ng harakatni alohida avtorizatsiya qiling.
+
+**Tanish foydalanuvchini qayta tekshirish (Secondary Request Flow).** Foydalanuvchining `reuid`'sini saqlaganingizdan so'ng, keyingi session'larni pasport ma'lumotlari o'rniga shu `reuid` bilan yarating — foydalanuvchi faqat yuzi bilan qayta tasdiqlaydi, siz esa qaytishda o'sha almashtirish va chegara tekshiruvini bajarasiz.
+
+Agar ilova `result.code`ni olishdan oldin ishdan chiqsa yoki fon rejimiga o'tsa, tekshiruvni yo'qotmang — uni [session yaratish](#sizning-backendingiz-session-yaratish) bo'limi oxirida ko'rsatilganidek, server tomonida session'dan tiklang.
+
+> [!IMPORTANT]
+> Bularning barchasi backend'ingizda, `access_token`ingiz ortida bo'ladi. Ilova hech qachon `client_secret`ni ko'rmaydi, chegarani tanlamaydi, va uning `result`i doimo faqat serveringiz hali bajarishi kerak bo'lgan ishga ishora xolos.
 
 ## API ma'lumotnomasi
 
@@ -379,6 +425,7 @@ Har birida tekshirildi: native modul registratsiyasi, to'liq mock API, config va
 ## Qo'llanmalar va maqolalar
 
 - [MyID in React Native and Expo: the complete integration guide (2026)](https://medium.com/@kamuranbek1998/myid-in-react-native-and-expo-the-complete-integration-guide-2026-5efabc862cfb) — session flow, ikkala o'rnatish yo'li, xatoliklar bilan ishlash va amaliy kuzatuvlar; Medium'da.
+- [Как завернуть коммерческий биометрический SDK в React Native: разбор на примере MyID](https://habr.com/ru/articles/1062676/) — Habr'dagi rus tilidagi qo'llanma: sessiyaviy flow, iOS'dagi static frameworks va privacy-manifest nuanslari, xatoliklar bilan ishlash.
 
 ## Boshqa wrapper'lar bilan taqqoslash
 
