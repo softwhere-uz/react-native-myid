@@ -225,6 +225,12 @@ export async function verifyUser(sessionId: string): Promise<MyIdResult | null> 
 Сессии выпускаются **бэкенд-к-бэкенду** с вашими учётными данными MyID API ([официальная документация](https://docs.myid.uz/#/en/sdknew)). Минимальный набросок на Node/TypeScript:
 
 ```ts
+// Любой не-2xx от MyID должен падать явно — плохой ответ никогда не бывает валидным результатом.
+const json = async (r: Response) => {
+  if (!r.ok) throw new Error(`MyID ${r.status}: ${await r.text()}`);
+  return r.json();
+};
+
 // 1) Токен доступа — кэшируйте его; он живёт 7 дней (expires_in: 604800).
 const { access_token } = await fetch(`${MYID_HOST}/api/v1/auth/clients/access-token`, {
   method: 'POST',
@@ -233,7 +239,7 @@ const { access_token } = await fetch(`${MYID_HOST}/api/v1/auth/clients/access-to
     client_id: process.env.MYID_CLIENT_ID,        // переменные окружения бэкенда —
     client_secret: process.env.MYID_CLIENT_SECRET, // НИКОГДА не в мобильном приложении
   }),
-}).then(r => r.json());
+}).then(json);
 
 // 2) Сессия — одноразовая, действует 10 минут. Пустое тело = SDK покажет
 //    собственный экран ввода паспорта; либо предзаполните pass_data/pinfl + birth_date.
@@ -241,13 +247,13 @@ const { session_id } = await fetch(`${MYID_HOST}/api/v2/sdk/sessions`, {
   method: 'POST',
   headers: { Authorization: `Bearer ${access_token}`, 'Content-Type': 'application/json' },
   body: JSON.stringify({}),
-}).then(r => r.json());
+}).then(json);
 // → передайте session_id (UUID4) приложению для identify()
 
 // 3) После того как приложение вернёт result.code (одноразовый, TTL 5 минут):
 const profile = await fetch(`${MYID_HOST}/api/v1/sdk/data?code=${code}`, {
   headers: { Authorization: `Bearer ${access_token}` },
-}).then(r => r.json());
+}).then(json);
 // → profile.comparison_value, profile.profile.*, profile.reuid (для
 //   Secondary Request Flow — повторной верификации известного пользователя без паспортных данных)
 ```

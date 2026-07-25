@@ -225,6 +225,12 @@ Foydalanuvchining jarayonni yopishi — **birinchi darajali natija** (`kind: 'ca
 Session'lar MyID API hisob ma'lumotlaringiz bilan **backend'dan backend'ga** yaratiladi ([rasmiy hujjatlar](https://docs.myid.uz/#/en/sdknew)). Minimal Node/TypeScript namunasi:
 
 ```ts
+// MyID'dan 2xx bo'lmagan har qanday javob aniq xato berishi kerak — yomon javob hech qachon to'g'ri natija emas.
+const json = async (r: Response) => {
+  if (!r.ok) throw new Error(`MyID ${r.status}: ${await r.text()}`);
+  return r.json();
+};
+
 // 1) Access token — keshlab qo'ying; u 7 kun amal qiladi (expires_in: 604800).
 const { access_token } = await fetch(`${MYID_HOST}/api/v1/auth/clients/access-token`, {
   method: 'POST',
@@ -233,7 +239,7 @@ const { access_token } = await fetch(`${MYID_HOST}/api/v1/auth/clients/access-to
     client_id: process.env.MYID_CLIENT_ID,        // backend env o'zgaruvchilari —
     client_secret: process.env.MYID_CLIENT_SECRET, // HECH QACHON mobil ilovada emas
   }),
-}).then(r => r.json());
+}).then(json);
 
 // 2) Session — bir martalik, 10 daqiqa amal qiladi. Bo'sh body = SDK o'zining
 //    pasport kiritish ekranini ko'rsatadi; yoki pass_data/pinfl + birth_date bilan oldindan to'ldiring.
@@ -241,13 +247,13 @@ const { session_id } = await fetch(`${MYID_HOST}/api/v2/sdk/sessions`, {
   method: 'POST',
   headers: { Authorization: `Bearer ${access_token}`, 'Content-Type': 'application/json' },
   body: JSON.stringify({}),
-}).then(r => r.json());
+}).then(json);
 // → session_id (UUID4) ni identify() uchun ilovaga uzating
 
 // 3) Ilova result.code qaytargandan so'ng (bir martalik, TTL 5 daqiqa):
 const profile = await fetch(`${MYID_HOST}/api/v1/sdk/data?code=${code}`, {
   headers: { Authorization: `Bearer ${access_token}` },
-}).then(r => r.json());
+}).then(json);
 // → profile.comparison_value, profile.profile.*, profile.reuid (Secondary
 //   Request Flow uchun — ma'lum foydalanuvchini pasport ma'lumotlarisiz qayta tekshirish)
 ```

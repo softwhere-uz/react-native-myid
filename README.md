@@ -225,6 +225,12 @@ A user closing the flow is a **first-class outcome** (`kind: 'cancelled'`), not 
 Sessions are minted **backend-to-backend** with your MyID API credentials ([official docs](https://docs.myid.uz/#/en/sdknew)). Minimal Node/TypeScript sketch:
 
 ```ts
+// Any non-2xx from MyID must fail loudly — a bad response is never a valid result.
+const json = async (r: Response) => {
+  if (!r.ok) throw new Error(`MyID ${r.status}: ${await r.text()}`);
+  return r.json();
+};
+
 // 1) Access token — cache it; it lives 7 days (expires_in: 604800).
 const { access_token } = await fetch(`${MYID_HOST}/api/v1/auth/clients/access-token`, {
   method: 'POST',
@@ -233,7 +239,7 @@ const { access_token } = await fetch(`${MYID_HOST}/api/v1/auth/clients/access-to
     client_id: process.env.MYID_CLIENT_ID,        // backend env vars —
     client_secret: process.env.MYID_CLIENT_SECRET, // NEVER in the mobile app
   }),
-}).then(r => r.json());
+}).then(json);
 
 // 2) Session — single-use, valid 10 minutes. Empty body = the SDK shows its
 //    own passport-input screen; or pre-fill with pass_data/pinfl + birth_date.
@@ -241,13 +247,13 @@ const { session_id } = await fetch(`${MYID_HOST}/api/v2/sdk/sessions`, {
   method: 'POST',
   headers: { Authorization: `Bearer ${access_token}`, 'Content-Type': 'application/json' },
   body: JSON.stringify({}),
-}).then(r => r.json());
+}).then(json);
 // → hand session_id (a UUID4) to the app for identify()
 
 // 3) After the app returns result.code (one-time, 5-minute TTL):
 const profile = await fetch(`${MYID_HOST}/api/v1/sdk/data?code=${code}`, {
   headers: { Authorization: `Bearer ${access_token}` },
-}).then(r => r.json());
+}).then(json);
 // → profile.comparison_value, profile.profile.*, profile.reuid (for the
 //   Secondary Request Flow — re-verifying a known user without passport data)
 ```
