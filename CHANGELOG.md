@@ -5,6 +5,25 @@ All notable changes to this project are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-07-26
+
+### Added
+
+- **New "Verifying on your backend" README section (EN/RU/UZ).** A dedicated guide to
+  the most common integration mistake — trusting the client `result.code`. Covers
+  redeeming the one-time code with an `if (!res.ok) throw` check, judging
+  `comparison_value` against your own threshold, binding the returned identity, the
+  Secondary Request Flow (`reuid`), and recovering a verification when the app never
+  returns the code.
+- **Russian-language Habr tutorial** linked from "Guides & articles" (the RU README now
+  leads with it; EN/UZ list it alongside the Medium guide).
+
+### Changed
+
+- **Hardened the backend session snippet.** The minting/redeem examples now route every
+  fetch through a `json()` helper that throws on a non-2xx response, so a failed mint or
+  redeem can never be silently parsed as a valid session or result.
+
 ## [0.1.5] - 2026-07-26
 
 ### Added
