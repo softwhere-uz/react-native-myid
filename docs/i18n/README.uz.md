@@ -31,6 +31,7 @@
 - [O'rnatish — bare React Native](#ornatish--bare-react-native)
 - [Tezkor boshlash](#tezkor-boshlash)
 - [Sizning backend'ingiz: session yaratish](#sizning-backendingiz-session-yaratish)
+- [Backend'ingizda tekshirish](#backendingizda-tekshirish)
 - [API ma'lumotnomasi](#api-malumotnomasi)
 - [Xatoliklar bilan ishlash](#xatoliklar-bilan-ishlash)
 - [Mock rejimi](#mock-rejimi)
@@ -252,6 +253,45 @@ const profile = await fetch(`${MYID_HOST}/api/v1/sdk/data?code=${code}`, {
 ```
 
 Agar ilova qaytib kelmasa (crash, foydalanuvchi tashlab ketishi), server tomonida tiklang: `GET /api/v1/sdk/sessions/{session_id}` → `{ code, status: 'in_progress' | 'closed' | 'expired', attempts[] }`.
+
+## Backend'ingizda tekshirish
+
+Qurilma sizga `code` beradi. Bu **tasdiqlangan shaxs emas** — bu backend'ingiz almashtirib, *baholashi* shart bo'lgan da'vo xolos. *«Bu haqiqatan o'shami va moslik yetarlicha ishonchlimi?»* degan qarorning barchasi server tomonida, sizning `access_token`ingiz bilan bo'ladi. Buni o'tkazib yuborsangiz — root qilingan qurilma, qayta o'ynatilgan javob yoki qo'lda yasalgan `result` obyekti to'g'ridan-to'g'ri avtorizatsiyangizdan o'tib ketadi. Bu — eng ko'p uchraydigan va eng qimmatga tushadigan integratsiya xatosi.
+
+[Yuqoridagi session yaratish namunasi](#sizning-backendingiz-session-yaratish) almashtirish so'rovini ko'rsatadi; endi qaytgan narsa bilan aynan nima *qilish* kerak:
+
+```ts
+// Bir martalik kodni (TTL 5 daqiqa) keshlangan access_token bilan almashtiring.
+const res = await fetch(`${MYID_HOST}/api/v1/sdk/data?code=${encodeURIComponent(code)}`, {
+  headers: { Authorization: `Bearer ${access_token}` },
+});
+if (!res.ok) {
+  // 2xx bo'lmagan javob — kod ishlatilgan, muddati o'tgan yoki mavjud emas — rad eting.
+  throw new Error(`MyID redeem failed: ${res.status}`);
+}
+const data = await res.json();
+
+// 1) Moslik bahosi ishonchli manba — lekin «qabul/rad» qarori SDK'niki emas, SIZNIKI.
+if (data.comparison_value == null || data.comparison_value < YOUR_THRESHOLD) {
+  throw new Error('Face match below threshold — reject.');
+}
+
+// 2) Shaxsni bog'lang: data.profile (ism, JSHSHIR, pasport, …) foydalanuvchi da'vo
+//    qilgan akkauntligini tasdiqlang; NOTO'G'RI odam bilan moslik — baribir xato.
+
+// 3) Keyin qayta tekshirish uchun data.reuid'ni saqlang (Secondary Request Flow).
+```
+
+**Chegara qiymatini ongli tanlang.** Bu endpoint'dan keladigan `comparison_value` — yuz mosligining ishonchli bahosi; SDK'ning o'z `comparison` maydoni ma'lumot uchun bo'lib, ba'zi build'larda mavjud emas (iOS 3.1.3). Uni solishtiradigan *chegara* — bu xavf-xatar qarori: uni skopirovka qilingan konstanta emas, o'z shartnomangiz va foydalanish stsenariyingizga qarab tanlang.
+
+**O'tgan chegara — bu hali avtorizatsiya emas.** U yuz jonli ekanini va *biror* yozuvga mosligini isbotlaydi; ilovangiz baribir qaytgan shaxs aynan shu session harakat qilayotgan shaxs ekanini tasdiqlashi kerak. Avval odamni autentifikatsiya qiling, so'ng harakatni alohida avtorizatsiya qiling.
+
+**Tanish foydalanuvchini qayta tekshirish (Secondary Request Flow).** Foydalanuvchining `reuid`'sini saqlaganingizdan so'ng, keyingi session'larni pasport ma'lumotlari o'rniga shu `reuid` bilan yarating — foydalanuvchi faqat yuzi bilan qayta tasdiqlaydi, siz esa qaytishda o'sha almashtirish va chegara tekshiruvini bajarasiz.
+
+Agar ilova `result.code`ni olishdan oldin ishdan chiqsa yoki fon rejimiga o'tsa, tekshiruvni yo'qotmang — uni [session yaratish](#sizning-backendingiz-session-yaratish) bo'limi oxirida ko'rsatilganidek, server tomonida session'dan tiklang.
+
+> [!IMPORTANT]
+> Bularning barchasi backend'ingizda, `access_token`ingiz ortida bo'ladi. Ilova hech qachon `client_secret`ni ko'rmaydi, chegarani tanlamaydi, va uning `result`i doimo faqat serveringiz hali bajarishi kerak bo'lgan ishga ishora xolos.
 
 ## API ma'lumotnomasi
 
