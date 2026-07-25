@@ -379,6 +379,7 @@ Verified in each: native module registration, the full mock API, config validati
 ## Guides & articles
 
 - [MyID in React Native and Expo: the complete integration guide (2026)](https://medium.com/@kamuranbek1998/myid-in-react-native-and-expo-the-complete-integration-guide-2026-5efabc862cfb) — session flow, both install paths, error handling, and field notes, on Medium.
+- [Как завернуть коммерческий биометрический SDK в React Native: разбор на примере MyID](https://habr.com/ru/articles/1062676/) — Russian-language tutorial on Habr covering the same session flow, the iOS static-frameworks/privacy-manifest pitfalls, and typed error handling.
 
 ## Comparison with other wrappers
 

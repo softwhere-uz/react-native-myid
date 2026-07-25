@@ -378,7 +378,8 @@ setMockMode(null);                                         // назад к ре
 
 ## Гайды и статьи
 
-- [MyID in React Native and Expo: the complete integration guide (2026)](https://medium.com/@kamuranbek1998/myid-in-react-native-and-expo-the-complete-integration-guide-2026-5efabc862cfb) — сессионный флоу, оба пути установки, обработка ошибок и заметки из практики; статья на Medium.
+- [Как завернуть коммерческий биометрический SDK в React Native: разбор на примере MyID](https://habr.com/ru/articles/1062676/) — туториал на Habr: сессионный флоу, статические фреймворки и privacy-манифест на iOS, обработка ошибок и заметки из практики.
+- [MyID in React Native and Expo: the complete integration guide (2026)](https://medium.com/@kamuranbek1998/myid-in-react-native-and-expo-the-complete-integration-guide-2026-5efabc862cfb) — та же тема на английском; статья на Medium.
 
 ## Сравнение с другими обёртками
 

@@ -379,6 +379,7 @@ Har birida tekshirildi: native modul registratsiyasi, to'liq mock API, config va
 ## Qo'llanmalar va maqolalar
 
 - [MyID in React Native and Expo: the complete integration guide (2026)](https://medium.com/@kamuranbek1998/myid-in-react-native-and-expo-the-complete-integration-guide-2026-5efabc862cfb) — session flow, ikkala o'rnatish yo'li, xatoliklar bilan ishlash va amaliy kuzatuvlar; Medium'da.
+- [Как завернуть коммерческий биометрический SDK в React Native: разбор на примере MyID](https://habr.com/ru/articles/1062676/) — Habr'dagi rus tilidagi qo'llanma: sessiyaviy flow, iOS'dagi static frameworks va privacy-manifest nuanslari, xatoliklar bilan ishlash.
 
 ## Boshqa wrapper'lar bilan taqqoslash
 
