@@ -54,5 +54,9 @@ jobs:
           npm run test:ci
           npm run build
           npm run build:plugin
+      - name: Assert tarball contents
+        # A published version can't be overwritten, so fail loudly here if the
+        # tarball is missing a required file or leaking source/secrets/tests.
+        run: node internal/module_scripts/verify-pack.js
       - name: Publish (tokenless via OIDC, with provenance)
         run: npm publish

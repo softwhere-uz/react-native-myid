@@ -73,6 +73,45 @@ describe('mock mode', () => {
     const error = (await identify(validConfig).catch((e) => e)) as MyIdError;
     expect(error.code).toBe(103);
   });
+
+  it('honors a base64Image override on success', async () => {
+    setMockMode({ outcome: 'success', delayMs: 0, result: { base64Image: 'CUSTOM_IMG' } });
+    const result = await identify(validConfig);
+    expect(result.base64Image).toBe('CUSTOM_IMG');
+  });
+
+  it('derives the mock success code from the sessionId when no override is given', async () => {
+    setMockMode({ outcome: 'success', delayMs: 0 });
+    const result = await identify(validConfig);
+    expect(result.code).toBe(`MOCK-${validConfig.sessionId.slice(0, 8)}`);
+  });
+
+  it('honors a custom message on a cancelled mock', async () => {
+    setMockMode({ outcome: 'cancelled', delayMs: 0, message: 'user backed out' });
+    const error = await identify(validConfig).catch((e) => e);
+    expect(error.kind).toBe('cancelled');
+    expect(error.message).toBe('user backed out');
+  });
+
+  it('honors a custom message and explicit code on an sdk mock', async () => {
+    setMockMode({ outcome: 'sdk', delayMs: 0, message: 'user banned', code: 122 });
+    const error = (await identify(validConfig).catch((e) => e)) as MyIdError;
+    expect(error.message).toBe('user banned');
+    expect(error.code).toBe(122);
+  });
+
+  it('applies the default 1200ms delay when delayMs is omitted', async () => {
+    jest.useFakeTimers();
+    try {
+      setMockMode({ outcome: 'success' });
+      const pending = identify(validConfig);
+      await jest.advanceTimersByTimeAsync(1200);
+      const result = await pending;
+      expect(result.code).toContain('MOCK-');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });
 
 describe('isMyIdError', () => {

@@ -150,6 +150,24 @@ describe('mergePrivacyAccessedApiTypes', () => {
       ]);
     }
   });
+
+  it('tolerates an existing entry with no reasons array', () => {
+    // A malformed/partial entry missing NSPrivacyAccessedAPITypeReasons must not
+    // throw — the `?? []` fallback normalizes it to an empty list.
+    const existing = [
+      { NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryActiveKeyboards' },
+    ] as unknown as Parameters<typeof mergePrivacyAccessedApiTypes>[0];
+    const merged = mergePrivacyAccessedApiTypes(existing);
+    const keyboards = merged.find(
+      (e) => e.NSPrivacyAccessedAPIType === 'NSPrivacyAccessedAPICategoryActiveKeyboards'
+    );
+    expect(keyboards?.NSPrivacyAccessedAPITypeReasons).toEqual([]);
+    expect(merged).toHaveLength(MYID_PRIVACY_ACCESSED_API_TYPES.length + 1);
+  });
+
+  it('defaults to only the MyID entries when called with no argument', () => {
+    expect(mergePrivacyAccessedApiTypes()).toHaveLength(MYID_PRIVACY_ACCESSED_API_TYPES.length);
+  });
 });
 
 describe('addFirebasePostInstall', () => {
