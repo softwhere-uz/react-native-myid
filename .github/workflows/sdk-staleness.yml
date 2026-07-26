@@ -1,0 +1,42 @@
+name: MyID SDK staleness
+
+# Weekly check: are the pinned MyID SDK versions (iOS MyIdSDK, Android
+# myid-capture-sdk) still the newest STABLE upstream? Betas are ignored on
+# purpose — this package pins exact stables. On drift, opens/updates a single
+# tracking issue. Run manually any time via "Run workflow".
+
+on:
+  schedule:
+    - cron: '17 6 * * 1' # Mondays 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    name: Check pinned SDKs vs latest stable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Compare pins against upstream
+        id: check
+        run: node internal/module_scripts/check-sdk-staleness.js
+      - name: Open or update tracking issue
+        if: steps.check.outputs.stale == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITLE="MyID SDK update available"
+          existing="$(gh issue list --state open --search "$TITLE in:title" --json number -q '.[0].number // empty')"
+          if [ -n "$existing" ]; then
+            echo "Updating existing issue #$existing"
+            gh issue comment "$existing" --body-file sdk-staleness-report.md
+          else
+            echo "Opening new tracking issue"
+            gh issue create --title "$TITLE" --body-file sdk-staleness-report.md
+          fi
