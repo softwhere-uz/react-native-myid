@@ -74,7 +74,7 @@ jobs:
           [ "$verdict" = "version-only" ] && echo "code=false" >> "$GITHUB_OUTPUT" || echo "code=true" >> "$GITHUB_OUTPUT"
 
   checks:
-    name: Lint · Typecheck · Build · Test + coverage
+    name: Lint · Typecheck · Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -87,8 +87,21 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
       - run: npm run build:plugin
+
+  # Its own job (not a step under `checks`) so tests show as a distinct check
+  # in the PR / Actions run and run in parallel with lint/build.
+  test:
+    name: Test + coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
       # Runs the full Jest suite with coverage; the coverageThreshold in
-      # package.json fails this step if the lib (src + plugin/src) regresses
+      # package.json fails this job if the lib (src + plugin/src) regresses
       # below the enforced floor.
       - run: npm run test:ci
       - name: Upload coverage report
