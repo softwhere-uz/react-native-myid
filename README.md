@@ -433,7 +433,7 @@ Every claim below was verified against the published npm tarballs, registries, a
 
 | Package | MyID 3.1.x session flow | Expo config plugin | Typed errors + first-class cancel | Native setup automated | Status (verified 2026-07-22) |
 |---|---|---|---|---|---|
-| **`@softwhere-uz/react-native-myid`** | ✅ both platforms | ✅ complete (static frameworks, permissions, privacy manifest, Maven) | ✅ `MyIdError` union, `cancelled` kind | ✅ Expo: everything · bare: 2 manual steps | Active; CI; unit-tested plugin; device-verified |
+| **`@softwhere-uz/react-native-myid`** | ✅ both platforms | ✅ complete (static frameworks, permissions, privacy manifest, Maven) | ✅ `MyIdError` union, `cancelled` kind | ✅ Expo: everything · bare: 2 manual steps | Active; CI-gated 100% test coverage; device-verified |
 | Official `myid-rn-sdk` (GitLab) | ❌ legacy `clientId` flow | — (bare demo app, `private: true`, not on npm) | — | — | Last commit 2024-10; RN 0.74.3; SDK 2.3.4 |
 | `expo-myid` | ❌ legacy `clientId` flow | ⚠️ partial — adds Maven + pod only; no permissions (requires installing `expo-camera` for them) | ❌ cancel never reaches JS | ⚠️ partial | Last publish 2024-11; pinned Android artifact (`…-bundled:2.3.6`) no longer exists on either MyID Artifactory host |
 | `rn-myid` | ✅ | ❌ | ✅ (promise + `USER_EXITED`) | ⚠️ Maven self-injected; manual `Info.plist` | Last publish 2026-06; self-described internal tool for its maintainer's apps |

@@ -5,6 +5,32 @@ All notable changes to this project are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-07-26
+
+Maintenance release. No changes to the shipped runtime or public API — this
+hardens the release pipeline, raises test coverage, and refreshes the example
+app to the current Expo SDK.
+
+### Added
+
+- **Pre-publish tarball guard.** `release.yml` now runs `verify-pack.js` before
+  `npm publish`, failing the release if a required file is missing or a forbidden
+  path (TypeScript source, tests, `.env`, `node_modules`) would ship. A published
+  version can't be overwritten, so this catches a bad manifest before it is
+  permanent.
+- **Weekly MyID SDK staleness check.** A scheduled workflow compares the pinned
+  iOS (`MyIdSDK`) and Android (`myid-capture-sdk`) versions against the newest
+  upstream **stable** — betas are ignored on purpose — and opens or updates a
+  single tracking issue when a bump is available.
+
+### Changed
+
+- **100% test coverage, enforced in CI.** The library (`src`) and Expo config
+  plugin (`plugin/src`) are now fully unit-tested (statements, branches,
+  functions, lines), with a `coverageThreshold` gating both CI and the release
+  workflow.
+- **Example app** updated to Expo SDK 57.0.8.
+
 ## [0.1.6] - 2026-07-26
 
 ### Added
