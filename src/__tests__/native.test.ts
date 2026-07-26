@@ -1,5 +1,5 @@
 import { getNativeMyIdModule } from '../MyIdModule';
-import { identify, isMyIdError } from '../index';
+import { identify, isMyIdError, MyIdError } from '../index';
 import type { MyIdConfig } from '../index';
 
 // Mock the native bridge with a factory (so the real module — which imports
@@ -87,4 +87,90 @@ it('skips native entirely for invalid config', async () => {
     kind: 'config',
   });
   expect(nativeIdentify).not.toHaveBeenCalled();
+});
+
+it('re-throws a MyIdError raised by the native side unchanged', async () => {
+  const original = new MyIdError('permission', 'camera denied');
+  nativeIdentify.mockRejectedValue(original);
+  await expect(identify(validConfig)).rejects.toBe(original);
+});
+
+it('re-throws an error-shaped object from the bridge without re-wrapping it', async () => {
+  // Across the native bridge a MyIdError may arrive as a plain, duck-typed
+  // object (name + kind) rather than a real instance. identify() must recognize
+  // it via isMyIdError and re-throw it as-is — NOT re-wrap it as kind "unknown".
+  const serialized = { name: 'MyIdError', kind: 'sdk', code: 122, message: 'user banned' };
+  nativeIdentify.mockRejectedValue(serialized);
+  const error = await identify(validConfig).catch((e) => e);
+  expect(isMyIdError(error)).toBe(true);
+  expect(error).toBe(serialized);
+  expect(error.kind).toBe('sdk');
+  expect(error.code).toBe(122);
+});
+
+it('passes every optional config field through to native intact', async () => {
+  // validateAndNormalize spreads the whole config; a dropped/mangled optional
+  // field would still keep line coverage green, so pin the passthrough here.
+  const fullConfig: MyIdConfig = {
+    ...validConfig,
+    environment: 'SANDBOX',
+    entryType: 'FACE_DETECTION',
+    locale: 'RU',
+    residency: 'NON_RESIDENT',
+    cameraShape: 'ELLIPSE',
+    cameraSelector: 'BACK',
+    minAge: 18,
+    distance: 0.75,
+    showErrorScreen: false,
+    organizationDetails: { phoneNumber: '+998900000000', logo: 'data:image/png;base64,AAAA' },
+    appearance: {
+      colorPrimary: '#0A84FF',
+      colorOnPrimary: '#FFFFFF',
+      colorError: '#FF0000',
+      colorSuccess: '#00FF00',
+      buttonCornerRadius: 12,
+    },
+    huaweiAppId: 'hms-123',
+  };
+  nativeIdentify.mockResolvedValue({ status: 'success', code: 'OK' });
+  await identify(fullConfig);
+  // Exact match: any dropped, added, or mangled field fails this assertion.
+  expect(nativeIdentify).toHaveBeenCalledWith(fullConfig);
+});
+
+it('falls back to a generic message for an error outcome with no message', async () => {
+  nativeIdentify.mockResolvedValue({ status: 'error', kind: 'network' });
+  const error = await identify(validConfig).catch((e) => e);
+  expect(error).toBeInstanceOf(MyIdError);
+  expect(error.kind).toBe('network');
+  expect(error.message).toBe('MyID failed (network).');
+});
+
+it('uses a thrown string as the message when native throws a string', async () => {
+  nativeIdentify.mockRejectedValue('kaboom');
+  const error = await identify(validConfig).catch((e) => e);
+  expect(error.kind).toBe('unknown');
+  expect(error.message).toBe('kaboom');
+  expect(error.nativeMessage).toBe('kaboom');
+});
+
+it('uses a generic message when native throws a message-less value', async () => {
+  nativeIdentify.mockRejectedValue({ notAMessage: true });
+  const error = await identify(validConfig).catch((e) => e);
+  expect(error.kind).toBe('unknown');
+  expect(error.message).toBe('MyID failed unexpectedly.');
+});
+
+it('uses a generic message when native throws null', async () => {
+  nativeIdentify.mockRejectedValue(null);
+  const error = await identify(validConfig).catch((e) => e);
+  expect(error.kind).toBe('unknown');
+  expect(error.message).toBe('MyID failed unexpectedly.');
+});
+
+it('guards against an unrecognized native outcome status', async () => {
+  nativeIdentify.mockResolvedValue({ status: 'bogus' } as never);
+  const error = await identify(validConfig).catch((e) => e);
+  expect(error.kind).toBe('unknown');
+  expect(error.message).toMatch(/Unrecognized MyID outcome/);
 });

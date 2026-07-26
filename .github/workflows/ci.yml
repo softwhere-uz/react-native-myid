@@ -74,7 +74,7 @@ jobs:
           [ "$verdict" = "version-only" ] && echo "code=false" >> "$GITHUB_OUTPUT" || echo "code=true" >> "$GITHUB_OUTPUT"
 
   checks:
-    name: Lint · Typecheck · Build · Test
+    name: Lint · Typecheck · Build · Test + coverage
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -87,7 +87,17 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
       - run: npm run build:plugin
+      # Runs the full Jest suite with coverage; the coverageThreshold in
+      # package.json fails this step if the lib (src + plugin/src) regresses
+      # below the enforced floor.
       - run: npm run test:ci
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          if-no-files-found: ignore
 
   plugin-prebuild:
     name: Config plugin · prebuild assertions + JS bundle

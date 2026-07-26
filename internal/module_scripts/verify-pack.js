@@ -38,6 +38,7 @@ const FORBIDDEN = [
   { re: /\.tsbuildinfo$/, why: 'incremental build cache' },
 ];
 
+/* istanbul ignore next -- spawns `npm pack`; the release job exercises it, unit tests drive checkTarball directly */
 function packedFiles() {
   // --ignore-scripts: the build already ran earlier in the release job; skipping
   // the `prepare` rebuild keeps stdout clean JSON and avoids redundant work.
@@ -58,8 +59,10 @@ function packedFiles() {
   return parsed[0].files.map((f) => f.path);
 }
 
-function main() {
-  const files = packedFiles();
+// Pure verification: given the list of packed paths, return every problem
+// (missing-required or forbidden-shipped). Exported so it can be unit-tested
+// without actually running `npm pack`.
+function checkTarball(files) {
   const problems = [];
 
   for (const req of REQUIRED) {
@@ -74,6 +77,14 @@ function main() {
       }
     }
   }
+
+  return problems;
+}
+
+/* istanbul ignore next -- release-time orchestration around the tested checkTarball */
+function main() {
+  const files = packedFiles();
+  const problems = checkTarball(files);
 
   if (problems.length > 0) {
     console.error('✗ Tarball verification FAILED:');
@@ -90,4 +101,11 @@ function main() {
   );
 }
 
-main();
+// Only run when invoked directly (`node verify-pack.js`), not when `require`d by
+// a test — so unit tests can import the pure helpers without packing/exiting.
+/* istanbul ignore next -- CLI entry guard; false under require() in tests */
+if (require.main === module) {
+  main();
+}
+
+module.exports = { REQUIRED, FORBIDDEN, checkTarball, packedFiles };

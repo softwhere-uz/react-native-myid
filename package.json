@@ -11,7 +11,7 @@
     "lint": "eslint src plugin/src",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "test:ci": "jest --ci --runInBand",
+    "test:ci": "jest --ci --runInBand --coverage",
     "prepare": "node internal/module_scripts/prepare.js",
     "open:ios": "node internal/module_scripts/open-ios.js",
     "open:android": "node internal/module_scripts/open-android.js"
@@ -87,8 +87,34 @@
     "testEnvironment": "node",
     "roots": [
       "<rootDir>/src",
-      "<rootDir>/plugin/src"
+      "<rootDir>/plugin/src",
+      "<rootDir>/internal/module_scripts"
     ],
+    "testMatch": [
+      "**/__tests__/**/*.test.[jt]s?(x)",
+      "**/*.test.[jt]s?(x)"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.ts",
+      "plugin/src/**/*.ts",
+      "internal/module_scripts/verify-pack.js",
+      "internal/module_scripts/check-sdk-staleness.js",
+      "!**/__tests__/**",
+      "!src/MyId.types.ts"
+    ],
+    "coverageReporters": [
+      "text-summary",
+      "text",
+      "lcov"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "statements": 98,
+        "branches": 95,
+        "functions": 100,
+        "lines": 98
+      }
+    },
     "transform": {
       "^.+\\.[jt]sx?$": [
         "babel-jest",

@@ -39,21 +39,31 @@ function readPin(file, regex) {
   return match[1];
 }
 
+/* istanbul ignore next -- network boundary, exercised only in the weekly CI job */
 async function fetchText(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
   return res.text();
 }
 
-async function iosLatestStable() {
-  const data = JSON.parse(await fetchText(IOS_TRUNK));
-  return latestStable(data.versions.map((v) => v.name));
+/** Extract the version-name list from the CocoaPods trunk JSON payload. */
+function parseIosVersions(jsonText) {
+  return JSON.parse(jsonText).versions.map((v) => v.name);
 }
 
+/** Extract the version list from the Android Artifactory maven-metadata XML. */
+function parseAndroidVersions(xmlText) {
+  return [...xmlText.matchAll(/<version>([^<]+)<\/version>/g)].map((m) => m[1]);
+}
+
+/* istanbul ignore next -- thin network wrapper over the tested parse helper */
+async function iosLatestStable() {
+  return latestStable(parseIosVersions(await fetchText(IOS_TRUNK)));
+}
+
+/* istanbul ignore next -- thin network wrapper over the tested parse helper */
 async function androidLatestStable() {
-  const xml = await fetchText(ANDROID_METADATA);
-  const versions = [...xml.matchAll(/<version>([^<]+)<\/version>/g)].map((m) => m[1]);
-  return latestStable(versions);
+  return latestStable(parseAndroidVersions(await fetchText(ANDROID_METADATA)));
 }
 
 function emit(name, value) {
@@ -62,6 +72,26 @@ function emit(name, value) {
   }
 }
 
+/**
+ * Decide, from the pinned-vs-latest rows, whether any SDK is behind and render
+ * the markdown status report. Pure — the network/IO orchestration lives in
+ * {@link main}. This is the actual decision the weekly cron depends on.
+ */
+function buildStalenessReport(rows) {
+  let stale = false;
+  const lines = [];
+  for (const r of rows) {
+    const behind = compareVersions(r.latest, r.pinned) > 0;
+    if (behind) stale = true;
+    lines.push(
+      `${behind ? '⚠️' : '✅'} **${r.platform}** — pinned \`${r.pinned}\`, latest stable \`${r.latest}\`` +
+        (behind ? ` → **update available** (\`${r.file}\`)` : '')
+    );
+  }
+  return { stale, report: lines.join('\n') };
+}
+
+/* istanbul ignore next -- IO/network orchestration, exercised only in the weekly CI job */
 async function main() {
   const iosPin = readPin('ios/MyId.podspec', /MyIdSDK['"]?\s*,\s*['"]([0-9][^'"]*)['"]/);
   const androidPin = readPin('android/build.gradle', /myid-capture-sdk:([0-9][^"']*)/);
@@ -81,18 +111,7 @@ async function main() {
     },
   ];
 
-  let stale = false;
-  const lines = [];
-  for (const r of rows) {
-    const behind = compareVersions(r.latest, r.pinned) > 0;
-    if (behind) stale = true;
-    lines.push(
-      `${behind ? '⚠️' : '✅'} **${r.platform}** — pinned \`${r.pinned}\`, latest stable \`${r.latest}\`` +
-        (behind ? ` → **update available** (\`${r.file}\`)` : '')
-    );
-  }
-
-  const report = lines.join('\n');
+  const { stale, report } = buildStalenessReport(rows);
   console.log(report.replace(/\*\*/g, '').replace(/`/g, ''));
 
   // Always surface the status in the Actions run summary.
@@ -115,7 +134,23 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error('SDK staleness check failed:', error.message);
-  process.exit(1);
-});
+// Only run the (network-touching) check when invoked directly, so unit tests
+// can import the pure version helpers without hitting the network or exiting.
+/* istanbul ignore next -- CLI entry guard; false under require() in tests */
+if (require.main === module) {
+  main().catch((error) => {
+    console.error('SDK staleness check failed:', error.message);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  compareVersions,
+  latestStable,
+  isStable,
+  readPin,
+  parseIosVersions,
+  parseAndroidVersions,
+  buildStalenessReport,
+  emit,
+};
